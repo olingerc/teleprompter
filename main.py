@@ -39,8 +39,8 @@ class SongCard(
         song=None,
         index=None,
         is_placeholder=False,
-        prompts=None,
         images=None,
+        number_of_slides=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -55,8 +55,8 @@ class SongCard(
 
             self.orientation = "vertical"
             self.focus = False
-            self.prompts = prompts
             self.images = images
+            self.number_of_slides = number_of_slides
 
             self.sequence_label_widget = Label(
                 text=sequence, font_size="18sp", color=WHITE
@@ -79,30 +79,45 @@ class SongCard(
 
 class Prompt(BoxLayout):
 
-    def __init__(self, **kwargs):
+    def __init__(self, images = None, number_of_slides=None, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = "vertical"
-        self.focus = False
-        self.drawn_prompts = []
+        self.images = images
         self.drawn_images = []
+        self.current_image_number = 0
+        self.number_of_slides = number_of_slides
 
-    def draw_prompts(self, prompts):
-        for p in self.drawn_prompts:
-            self.remove_widget(p)
-
-        for p in prompts:
-            label = Label(text=p, font_size="18sp", color=WHITE)
-            self.drawn_prompts.append(label)
-            self.add_widget(label)
-
-    def draw_images(self, images):
+    def draw_first_image(self):
         for p in self.drawn_images:
             self.remove_widget(p)
 
-        for i in images:
-            image = Image(source=i)
+        image = Image(source=self.images[0])
+        self.drawn_images.append(image)
+        self.add_widget(image)
+    
+    def next_image(self):
+        if self.current_image_number + 1 > self.number_of_slides - 1:
+            return
+        else:
+            for p in self.drawn_images:
+                self.remove_widget(p)
+            image = Image(source=self.images[self.current_image_number + 1])
             self.drawn_images.append(image)
             self.add_widget(image)
+            
+            self.current_image_number = self.current_image_number + 1
+    
+    def prev_image(self):
+        if self.current_image_number -1 < 0:
+            return
+        else:
+            for p in self.drawn_images:
+                self.remove_widget(p)
+            image = Image(source=self.images[self.current_image_number - 1])
+            self.drawn_images.append(image)
+            self.add_widget(image)
+            
+            self.current_image_number = self.current_image_number - 1
+        
 
 
 class TeleprompterMain(FloatLayout):
@@ -140,14 +155,16 @@ class TeleprompterMain(FloatLayout):
             for f in os.listdir(songbook_folder):
                 if f.endswith("pptx"):
                     info = f.replace(".pptx", "")
+                    number_of_slides = self._number_of_slides(os.path.join(songbook_folder, f))
                     card = {
                         "sequence": info.split("-")[0].strip(),
                         "artist": info.split("-")[1].strip(),
                         "song": info.split("-")[2].strip(),
                         "images": self._presentation_to_images(
                             os.path.join(songbook_folder, f),
-                            self._number_of_slides(os.path.join(songbook_folder, f)),
+                            number_of_slides,
                         ),
+                        "number_of_slides": number_of_slides
                     }
                     cards.append(card)
         if len(cards) == 0:
@@ -203,8 +220,10 @@ class TeleprompterMain(FloatLayout):
                         self.input_state = (btn, state)
 
     def _keyboard_closed(self):
-        self._keyboard.unbind(on_key_down=self._on_keyboard_down)
-        self._keyboard = None
+        # Do not unbind, otherwise escape from prompt will switch to home but then no keys are detected anymore
+        pass
+        #self._keyboard.unbind(on_key_down=self._on_keyboard_down)
+        #self._keyboard = None
 
     def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
         key = keycode[1]
@@ -235,6 +254,10 @@ class TeleprompterMain(FloatLayout):
                 App.get_running_app().stop()
             else:
                 self.set_mode("home")
+                self._keyboard.bind(
+                    on_key_down=self._on_keyboard_down,
+                    on_key_up=self._on_keyboard_up,
+                )
 
         if btn and state:
             self.input_state = (btn, state)
@@ -287,12 +310,12 @@ class TeleprompterMain(FloatLayout):
                     "hold",
                     "down",
                 ]:
-                    pass
+                    self.prompt_widget.prev_image()
                 if self.input_state[0] == "KEY_C" and self.input_state[1] in [
                     "hold",
                     "down",
                 ]:
-                    pass
+                    self.prompt_widget.next_image()
 
                 if self.input_state[0] == "KEY_B" and self.input_state[1] in [
                     "hold",
@@ -303,7 +326,8 @@ class TeleprompterMain(FloatLayout):
     def _initialize_ui(self):
 
         # Window level
-        Window.fullscreen = True
+        # Window.fullscreen = True
+        Window.allow_screensaver = False
 
         # Main box (Create Grid for Home and Box for Prompt)
         self.home_layout = GridLayout(
@@ -340,9 +364,9 @@ class TeleprompterMain(FloatLayout):
                 sequence=c["sequence"],
                 artist=c["artist"],
                 song=c["song"],
-                prompts=c.get("prompts", []),
                 images=c.get("images", []),
                 is_placeholder=c.get("is_placeholder", False),
+                number_of_slides=c.get("number_of_slides"),
                 index=index,
             )
             self.home_layout.add_widget(c_instance)
@@ -369,7 +393,7 @@ class TeleprompterMain(FloatLayout):
 
         filename_bare = os.path.basename(ppt_path).replace(".pptx", "")
         
-        # Gice cache if images are present
+        # Give cache if images are present
         expected_image_paths = []
         cache_ok = True
         for i in range(num_slides):
@@ -422,7 +446,9 @@ class TeleprompterMain(FloatLayout):
                 c.set_focus(False)
 
     def enter_prompt(self):
-        self.prompt_widget.draw_images(self.focused_card.images)
+        self.prompt_widget.images = self.focused_card.images
+        self.prompt_widget.number_of_slides = self.focused_card.number_of_slides
+        self.prompt_widget.draw_first_image()
         self.set_mode("prompt")
 
     def set_mode(self, mode):
