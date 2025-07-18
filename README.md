@@ -6,6 +6,7 @@
 kivy
 evdev
 python-pptx
+pdf2image
 ```
 
 ## Prepare system:
@@ -14,7 +15,7 @@ input reading needs sudo access or
 `sudo usermod -aG input $USER`
 
 ## For WSL2
-- `sudo apt install libmtdev-dev`
+- `sudo apt install libmtdev-dev libreoffice poppler-utils`
 
 
 ## Inestigating my Foot Switch
@@ -55,3 +56,7 @@ key event at 1752780066.741179, 30 (KEY_A), up
 bkey event at 1752780072.955876, 48 (KEY_B), up
 key event at 1752780078.412572, 46 (KEY_C), down
 ```
+
+## From Powerpoint to prompt
+
+- https://github.com/jdhao/pptx_to_image

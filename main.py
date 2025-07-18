@@ -1,4 +1,7 @@
 import os
+import subprocess
+
+from pdf2image import convert_from_bytes
 
 from kivy.app import App
 from kivy.uix.label import Label
@@ -7,6 +10,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty
+from kivy.uix.image import Image
 
 from pptx import Presentation
 
@@ -29,7 +33,7 @@ class SongCard(
     focus = ObjectProperty()  # Expose to template
     is_placeholder = ObjectProperty()  # Expose to template
 
-    def __init__(self, sequence=None, artist=None, song=None, index=None, is_placeholder=False, prompts=None, **kwargs):
+    def __init__(self, sequence=None, artist=None, song=None, index=None, is_placeholder=False, prompts=None, images=None, **kwargs):
         super().__init__(**kwargs)
         opacity = 1
         if is_placeholder:
@@ -43,6 +47,7 @@ class SongCard(
             self.orientation = "vertical"
             self.focus = False
             self.prompts = prompts
+            self.images = images
 
             self.sequence_label_widget = Label(text=sequence, font_size="18sp", color=WHITE)
             self.artist_label_widget = Label(text=artist, font_size="24sp", color=WHITE)
@@ -68,6 +73,7 @@ class Prompt(BoxLayout):
         self.orientation = "vertical"
         self.focus = False
         self.drawn_prompts = []
+        self.drawn_images = []
     
     def draw_prompts(self, prompts):
         for p in self.drawn_prompts:
@@ -77,6 +83,15 @@ class Prompt(BoxLayout):
             label = Label(text=p, font_size="18sp", color=WHITE)
             self.drawn_prompts.append(label)
             self.add_widget(label)
+    
+    def draw_images(self, images):
+        for p in self.drawn_images:
+            self.remove_widget(p)
+        
+        for i in images:
+            image = Image(source=i)
+            self.drawn_images.append(image)
+            self.add_widget(image)
 
 
 class TeleprompterMain(FloatLayout):
@@ -121,6 +136,9 @@ class TeleprompterMain(FloatLayout):
                         "prompts": self._presentation_to_prompt(
                             os.path.join(songbook_folder, f)
                         ),
+                        "images": self._presentation_to_images(
+                            os.path.join(songbook_folder, f)
+                        )
                     }
                     cards.append(card)
         if len(cards) == 0:
@@ -132,22 +150,6 @@ class TeleprompterMain(FloatLayout):
             ]
         else:
             return cards
-
-    def _presentation_to_prompt(self, path_to_presentation):
-        prs = Presentation(path_to_presentation)
-
-        # text_runs will be populated with a list of strings,
-        # one for each text run in presentation
-        text_runs = []
-
-        for slide in prs.slides:
-            for shape in slide.shapes:
-                if not shape.has_text_frame:
-                    continue
-                for paragraph in shape.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        text_runs.append(run.text)
-        return text_runs
 
     def _find_foot_switch_device(self):
         fs_device = None
@@ -310,7 +312,7 @@ class TeleprompterMain(FloatLayout):
         self.card_instances = []
         for index, c in enumerate(self.cards):
             c_instance = SongCard(
-                sequence=c["sequence"], artist=c["artist"], song=c["song"], prompts=c.get("prompts", []),
+                sequence=c["sequence"], artist=c["artist"], song=c["song"], prompts=c.get("prompts", []), images=c.get("images", []),
                 is_placeholder=c.get("is_placeholder", False), index=index
             )
             self.home_layout.add_widget(c_instance)
@@ -321,6 +323,59 @@ class TeleprompterMain(FloatLayout):
         # Fill Prompt
         self.prompt_widget = Prompt()
         self.prompt_layout.add_widget(self.prompt_widget)
+
+    def _presentation_to_prompt(self, path_to_presentation):
+        prs = Presentation(path_to_presentation)
+
+        # text_runs will be populated with a list of strings,
+        # one for each text run in presentation
+        text_runs = []
+
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if not shape.has_text_frame:
+                    continue
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        text_runs.append(run.text)
+        return text_runs
+
+    def _presentation_to_images(self, ppt_path):
+        img_format = "jpg"
+        out_dir = "ppt-previews"
+        pptfile_name = ppt_path
+
+        ###start = time.time()
+        print("Start converting your PPT to {} images.".format(img_format))
+
+        filename_base = os.path.basename(pptfile_name)
+        filename_bare = os.path.splitext(filename_base)[0]
+
+        # convert pptx to PDF
+        command_list = ["soffice", "--headless", "--convert-to", "pdf", pptfile_name]
+        subprocess.run(command_list)
+
+        pdffile_name = filename_bare + ".pdf"
+        with open(pdffile_name, "rb") as f:
+            pdf_bytes = f.read()
+        images = convert_from_bytes(pdf_bytes, dpi=96*4)
+
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+
+        image_paths = []
+        for i, img in enumerate(images):
+            im_name = os.path.join(out_dir, f"{filename_bare}-{i}.{img_format}")
+            image_paths.append(im_name)
+            img.save(im_name)
+        os.unlink(pdffile_name)
+        
+        """
+        elapse = time.time() - start
+        print("Conversion done, images saved in dir {}. Time spent: {}".format(
+            out_dir, elapse))
+        """
+        return image_paths
 
     def focus_previous_card(self):
         next_index = self.focused_card.index - 1
@@ -345,7 +400,7 @@ class TeleprompterMain(FloatLayout):
                 c.set_focus(False)
     
     def enter_prompt(self):
-        self.prompt_widget.draw_prompts(self.focused_card.prompts)
+        self.prompt_widget.draw_images(self.focused_card.images)
         self.set_mode("prompt")
     
     def set_mode(self, mode):
