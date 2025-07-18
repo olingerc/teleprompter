@@ -152,7 +152,9 @@ class TeleprompterMain(FloatLayout):
         )
         cards = []
         if os.path.exists(songbook_folder):
-            for f in os.listdir(songbook_folder):
+            for f in sorted(os.listdir(songbook_folder)):
+                if f.startswith("~"):
+                    continue  
                 if f.endswith("pptx"):
                     info = f.replace(".pptx", "")
                     number_of_slides = self._number_of_slides(os.path.join(songbook_folder, f))
@@ -327,7 +329,7 @@ class TeleprompterMain(FloatLayout):
     def _initialize_ui(self):
 
         # Window level
-        # Window.fullscreen = True
+        Window.fullscreen = True
         Window.allow_screensaver = False
 
         # Main box (Create Grid for Home and Box for Prompt)
@@ -394,7 +396,7 @@ class TeleprompterMain(FloatLayout):
 
         filename_bare = os.path.basename(ppt_path).replace(".pptx", "")
         
-        # Give cache if images are present
+        # Give cache if images are present but only if ppt is not newer
         expected_image_paths = []
         cache_ok = True
         for i in range(num_slides):
@@ -402,6 +404,9 @@ class TeleprompterMain(FloatLayout):
             expected_image_paths.append(expected_image)
             if os.path.exists(expected_image) is False:
                 cache_ok = False
+            else:
+                if os.path.getmtime(expected_image) < os.path.getmtime(ppt_path):
+                    cache_ok = False
         if cache_ok:
             print("Taking cached image")
             return expected_image_paths
