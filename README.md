@@ -13,7 +13,8 @@ input reading needs sudo access or
 `sudo usermod -aG input $USER`
 
 ## For WSL2
-- I go via `keyboard` library
+- `sudo apt install libmtdev-dev`
+
 
 ## Inestigating my Foot Switch
 

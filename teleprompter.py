@@ -2,13 +2,13 @@ from kivy.app import App
 from kivy.uix.label import Label
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
+from kivy.core.window import Window
 
 import threading
 from evdev import InputDevice, list_devices, categorize
-from pynput.keyboard import Key, Listener
+
 
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
-WIRED_KEYBOARD_DEVICE_NAME_SUFFIX = "Wired Keyboard"
 
 
 class InputMonitor(BoxLayout):
@@ -20,9 +20,11 @@ class InputMonitor(BoxLayout):
         self.input_state = None
 
         # Check for Foot Switch
-        self.fs_device, self.kb_device = self.find_input_devices()
-        
+        self.fs_device = self.find_foot_switch_device()
+
         # If keyboard we need this:
+        self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
+        self._keyboard.bind(on_key_down=self._on_keyboard_down, on_key_up=self._on_keyboard_up,)
         self.previous_state_a = None
         self.previous_state_b = None
         self.previous_state_c = None
@@ -33,9 +35,8 @@ class InputMonitor(BoxLayout):
         # Schedule UI update
         Clock.schedule_interval(self.update_label, 0.5)
 
-    def find_input_devices(self):
+    def find_foot_switch_device(self):
         fs_device = None
-        kb_device = None
         devices = [InputDevice(path) for path in list_devices()]
 
         for device in devices:
@@ -43,18 +44,16 @@ class InputMonitor(BoxLayout):
                 print(f"Found {FOOT_SWITCH_DEVICE_NAME_SUFFIX} at {device.path}")
                 fs_device = device
                 break
-        for device in devices:
-            if device.name.endswith(WIRED_KEYBOARD_DEVICE_NAME_SUFFIX):
-                print(f"Found {WIRED_KEYBOARD_DEVICE_NAME_SUFFIX} at {device.path}")
-                kb_device = device
-                break
-        if fs_device is None and kb_device is None:
-            print(f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX} or {WIRED_KEYBOARD_DEVICE_NAME_SUFFIX}")
-            print("Found")
-            for device in devices:
-                print(device)
-            print("Expect strange behaviour")
-        return fs_device, kb_device
+        if fs_device is None:
+            print(
+                f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX}"
+            )
+            print("Will try working with keyboard")
+            if len(devices)> 0:
+                print("Found:")
+                for device in devices:
+                    print(device)
+        return fs_device
 
     def detect_events(self):
         if self.fs_device:
@@ -79,79 +78,61 @@ class InputMonitor(BoxLayout):
 
                     if btn and state:
                         self.input_state = (btn, state)
-        elif self.kb_device:
-            with self.kb_device.grab_context():
-                for ev in self.kb_device.async_read_loop():
-                    btn = None
-                    state = None
-                    as_string = str(categorize(ev))
-                    if "KEY_1" in as_string:
-                        btn = "KEY_A"
-                    elif "KEY_2" in as_string:
-                        btn = "KEY_B"
-                    elif "KEY_3" in as_string:
-                        btn = "KEY_C"
 
-                    if "up" in as_string:
-                        state = "up"
-                    elif "down" in as_string:
-                        state = "down"
-                    elif "hold" in as_string:
-                        state = "hold"
+    def _keyboard_closed(self):
+        self._keyboard.unbind(on_key_down=self._on_keyboard_down)
+        self._keyboard = None
 
-                    if btn and state:
-                        self.input_state = (btn, state)
-        else:
-            # Collect events until released
-            with Listener(
-                    on_press=self.on_press,
-                    on_release=self.on_release) as listener:
-                listener.join()
 
-    def on_press(self, key):
+    def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
+        key = keycode[1]
         btn = None
         state = None
-        print(key.value() == "1")
-        if str(key) == "1":
+        if key == "1" or key =="numapd1":
             btn = "KEY_A"
             if self.previous_state_a == "press":
                 state = "hold"
             else:
                 state = "down"
-        if key == "2":
+        if key == "2" or key =="numapd2":
             btn = "KEY_B"
             if self.previous_state_b == "press":
                 state = "hold"
             else:
                 state = "down"
-        if key == "3":
+        if key == "3" or key =="numapd3":
             btn = "KEY_C"
             if self.previous_state_c == "press":
                 state = "hold"
             else:
                 state = "down"
-        print(key, btn)
+        if key == "escape":
+            # Stop listener
+            keyboard.release()
 
         if btn and state:
             self.input_state = (btn, state)
+        return True
 
-    def on_release(self, key):
+    def _on_keyboard_up(self, keyboard, keycode):
+        key = keycode[1]
         btn = None
         state = None
-        if key == "1":
+        if key == "1" or key =="numapd1":
             btn = "KEY_A"
             state = "up"
-        if key == "2":
+        if key == "2" or key =="numapd2":
             btn = "KEY_B"
             state = "up"
-        if key == "3":
+        if key == "3" or key =="numapd3":
             btn = "KEY_C"
             state = "up"
         if btn and state:
             self.input_state = (btn, state)
-        if key == Key.esc:
+        if key == "escape":
             # Stop listener
-            return False
+            keyboard.release()
+        return True
 
     def update_label(self, dt):
         if self.input_state:
@@ -166,4 +147,7 @@ class TelePrompterApp(App):
 
 
 if __name__ == "__main__":
-    TelePrompterApp().run()
+    try:
+        TelePrompterApp().run()
+    except Exception as e:
+        raise e
