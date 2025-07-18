@@ -5,6 +5,7 @@
 ```python
 kivy
 evdev
+python-pptx
 ```
 
 ## Prepare system:
