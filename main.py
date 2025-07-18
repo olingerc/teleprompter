@@ -201,6 +201,7 @@ class TeleprompterMain(FloatLayout):
 
                     if btn and state:
                         self.input_state = (btn, state)
+                        self._decide_action()
 
     def _keyboard_closed(self):
         self._keyboard.unbind(on_key_down=self._on_keyboard_down)
