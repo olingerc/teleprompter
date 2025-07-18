@@ -5,6 +5,7 @@ from kivy.uix.boxlayout import BoxLayout
 
 import threading
 from evdev import InputDevice, list_devices, categorize
+from pynput.keyboard import Key, Listener
 
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
 WIRED_KEYBOARD_DEVICE_NAME_SUFFIX = "Wired Keyboard"
@@ -19,6 +20,11 @@ class InputMonitor(BoxLayout):
 
         # Check for Foot Switch
         self.fs_device, self.kb_device = self.find_input_devices()
+        
+        # If keyboard we need this:
+        self.previous_state_a = None
+        self.previous_state_b = None
+        self.previous_state_c = None
 
         # Start the input listener thread
         threading.Thread(target=self.detect_events, daemon=True).start()
@@ -42,7 +48,11 @@ class InputMonitor(BoxLayout):
                 kb_device = device
                 break
         if fs_device is None and kb_device is None:
-            raise Exception(f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX} or {WIRED_KEYBOARD_DEVICE_NAME_SUFFIX}")
+            print(f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX} or {WIRED_KEYBOARD_DEVICE_NAME_SUFFIX}")
+            print("Found")
+            for device in devices:
+                print(device)
+            print("Expect strange behaviour")
         return fs_device, kb_device
 
     def detect_events(self):
@@ -90,6 +100,57 @@ class InputMonitor(BoxLayout):
                 
                     if btn and state:
                         self.input_state = (btn, state)
+        else:
+            # Collect events until released
+            with Listener(
+                    on_press=self.on_press,
+                    on_release=self.on_release) as listener:
+                listener.join()
+
+    def on_press(self, key):
+        btn = None
+        state = None
+        print(key.value() == "1")
+        if str(key) == "1":
+            btn = "KEY_A"
+            if self.previous_state_a == "press":
+                state = "hold"
+            else:
+                state = "down"
+        if key == "2":
+            btn = "KEY_B"
+            if self.previous_state_b == "press":
+                state = "hold"
+            else:
+                state = "down"
+        if key == "3":
+            btn = "KEY_C"
+            if self.previous_state_c == "press":
+                state = "hold"
+            else:
+                state = "down"
+        print(key, btn)
+
+        if btn and state:
+            self.input_state = (btn, state)
+
+    def on_release(self, key):
+        btn = None
+        state = None
+        if key == "1":
+            btn = "KEY_A"
+            state = "up"
+        if key == "2":
+            btn = "KEY_B"
+            state = "up"
+        if key == "3":
+            btn = "KEY_C"
+            state = "up"
+        if btn and state:
+            self.input_state = (btn, state)
+        if key == Key.esc:
+            # Stop listener
+            return False
 
     def update_label(self, dt):
         if self.input_state:

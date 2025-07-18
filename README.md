@@ -11,6 +11,9 @@ evdev
 input reading needs sudo access or
 `sudo usermod -aG input $USER`
 
+## For WSL2
+- I go via `keyboard` library
+
 ## Inestigating my Foot Switch
 `sudo evtest`
 ```
