@@ -31,17 +31,26 @@ class SongCard(
 ):
 
     focus = ObjectProperty()  # Expose to template
-    is_placeholder = ObjectProperty()  # Expose to template
 
-    def __init__(self, sequence=None, artist=None, song=None, index=None, is_placeholder=False, prompts=None, images=None, **kwargs):
+    def __init__(
+        self,
+        sequence=None,
+        artist=None,
+        song=None,
+        index=None,
+        is_placeholder=False,
+        prompts=None,
+        images=None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         opacity = 1
         if is_placeholder:
             opacity = 0
         BoxLayout.__init__(self, padding="100sp", opacity=opacity)
-        
+
         self.index = index
-        
+
         if is_placeholder is False:
 
             self.orientation = "vertical"
@@ -49,13 +58,15 @@ class SongCard(
             self.prompts = prompts
             self.images = images
 
-            self.sequence_label_widget = Label(text=sequence, font_size="18sp", color=WHITE)
+            self.sequence_label_widget = Label(
+                text=sequence, font_size="18sp", color=WHITE
+            )
             self.artist_label_widget = Label(text=artist, font_size="24sp", color=WHITE)
             self.song_label_widget = Label(
                 text=song,
                 font_size="24sp",
                 color=WHITE,
-                width = self.width,
+                width=self.width,
             )
             self.song_label_widget.text_size = (self.song_label_widget.width, None)
             self.add_widget(self.sequence_label_widget)
@@ -74,20 +85,20 @@ class Prompt(BoxLayout):
         self.focus = False
         self.drawn_prompts = []
         self.drawn_images = []
-    
+
     def draw_prompts(self, prompts):
         for p in self.drawn_prompts:
             self.remove_widget(p)
-        
+
         for p in prompts:
             label = Label(text=p, font_size="18sp", color=WHITE)
             self.drawn_prompts.append(label)
             self.add_widget(label)
-    
+
     def draw_images(self, images):
         for p in self.drawn_images:
             self.remove_widget(p)
-        
+
         for i in images:
             image = Image(source=i)
             self.drawn_images.append(image)
@@ -97,7 +108,7 @@ class Prompt(BoxLayout):
 class TeleprompterMain(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
+
         self.input_state = None
 
         # Check for Foot Switch
@@ -133,12 +144,10 @@ class TeleprompterMain(FloatLayout):
                         "sequence": info.split("-")[0].strip(),
                         "artist": info.split("-")[1].strip(),
                         "song": info.split("-")[2].strip(),
-                        "prompts": self._presentation_to_prompt(
-                            os.path.join(songbook_folder, f)
-                        ),
                         "images": self._presentation_to_images(
-                            os.path.join(songbook_folder, f)
-                        )
+                            os.path.join(songbook_folder, f),
+                            self._number_of_slides(os.path.join(songbook_folder, f)),
+                        ),
                     }
                     cards.append(card)
         if len(cards) == 0:
@@ -221,8 +230,11 @@ class TeleprompterMain(FloatLayout):
                 state = "down"
         if key == "escape":
             # Stop listener
-            keyboard.release()
-            App.get_running_app().stop()
+            if self.mode == "home":
+                keyboard.release()
+                App.get_running_app().stop()
+            else:
+                self.set_mode("home")
 
         if btn and state:
             self.input_state = (btn, state)
@@ -289,12 +301,18 @@ class TeleprompterMain(FloatLayout):
                     self.set_mode("home")
 
     def _initialize_ui(self):
-        
+
         # Window level
         Window.fullscreen = True
 
         # Main box (Create Grid for Home and Box for Prompt)
-        self.home_layout = GridLayout(cols=HOME_MIN_COLS_NUM, rows=HOME_MIN_ROWS_NUM, spacing=10, padding=10, orientation="lr-tb")
+        self.home_layout = GridLayout(
+            cols=HOME_MIN_COLS_NUM,
+            rows=HOME_MIN_ROWS_NUM,
+            spacing=10,
+            padding=10,
+            orientation="lr-tb",
+        )
         self.prompt_layout = BoxLayout(opacity=0)
         self.add_widget(self.home_layout)
         self.add_widget(self.prompt_layout)
@@ -305,77 +323,81 @@ class TeleprompterMain(FloatLayout):
             to_add = HOME_MIN_COLS_NUM * HOME_MIN_ROWS_NUM - len(self.cards)
             self.placeholders_num = to_add
             while to_add > 0:
-                self.cards.append({"is_placeholder": True, "sequence": None, "artist": None, "song": None})
+                self.cards.append(
+                    {
+                        "is_placeholder": True,
+                        "sequence": None,
+                        "artist": None,
+                        "song": None,
+                    }
+                )
                 to_add = to_add - 1
 
         # Create card widgets and place into grid
         self.card_instances = []
         for index, c in enumerate(self.cards):
             c_instance = SongCard(
-                sequence=c["sequence"], artist=c["artist"], song=c["song"], prompts=c.get("prompts", []), images=c.get("images", []),
-                is_placeholder=c.get("is_placeholder", False), index=index
+                sequence=c["sequence"],
+                artist=c["artist"],
+                song=c["song"],
+                prompts=c.get("prompts", []),
+                images=c.get("images", []),
+                is_placeholder=c.get("is_placeholder", False),
+                index=index,
             )
             self.home_layout.add_widget(c_instance)
             self.card_instances.append(c_instance)
         self.card_instances[0].set_focus()
         self.focused_card = self.card_instances[0]
-        
+
         # Fill Prompt
         self.prompt_widget = Prompt()
         self.prompt_layout.add_widget(self.prompt_widget)
 
-    def _presentation_to_prompt(self, path_to_presentation):
+    def _number_of_slides(self, path_to_presentation):
         prs = Presentation(path_to_presentation)
+        return len(prs.slides)
 
-        # text_runs will be populated with a list of strings,
-        # one for each text run in presentation
-        text_runs = []
-
-        for slide in prs.slides:
-            for shape in slide.shapes:
-                if not shape.has_text_frame:
-                    continue
-                for paragraph in shape.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        text_runs.append(run.text)
-        return text_runs
-
-    def _presentation_to_images(self, ppt_path):
-        img_format = "jpg"
-        out_dir = "ppt-previews"
-        pptfile_name = ppt_path
+    def _presentation_to_images(self, ppt_path, num_slides):
+        IMAGE_FORMAT = "jpg"
+        OUT_DIR = "ppt-previews"
+        if not os.path.exists(OUT_DIR):
+            os.mkdir(OUT_DIR)
 
         ###start = time.time()
-        print("Start converting your PPT to {} images.".format(img_format))
+        print("Start converting your PPT to {} images.".format(IMAGE_FORMAT))
 
-        filename_base = os.path.basename(pptfile_name)
-        filename_bare = os.path.splitext(filename_base)[0]
+        filename_bare = os.path.basename(ppt_path).replace(".pptx", "")
+        
+        # Gice cache if images are present
+        expected_image_paths = []
+        cache_ok = True
+        for i in range(num_slides):
+            expected_image = os.path.join(OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}")
+            expected_image_paths.append(expected_image)
+            if os.path.exists(expected_image) is False:
+                cache_ok = False
+        if cache_ok:
+            print("Taking cached image")
+            return expected_image_paths
 
         # convert pptx to PDF
-        command_list = ["soffice", "--headless", "--convert-to", "pdf", pptfile_name]
+        command_list = ["soffice", "--headless", "--convert-to", "pdf", ppt_path]
         subprocess.run(command_list)
 
         pdffile_name = filename_bare + ".pdf"
         with open(pdffile_name, "rb") as f:
             pdf_bytes = f.read()
-        images = convert_from_bytes(pdf_bytes, dpi=96*4)
+        images = convert_from_bytes(pdf_bytes, dpi=96 * 4)
 
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-
-        image_paths = []
+        created_image_paths = []
         for i, img in enumerate(images):
-            im_name = os.path.join(out_dir, f"{filename_bare}-{i}.{img_format}")
-            image_paths.append(im_name)
+            im_name = os.path.join(OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}")
+            created_image_paths.append(im_name)
             img.save(im_name)
         os.unlink(pdffile_name)
         
-        """
-        elapse = time.time() - start
-        print("Conversion done, images saved in dir {}. Time spent: {}".format(
-            out_dir, elapse))
-        """
-        return image_paths
+        return created_image_paths
 
     def focus_previous_card(self):
         next_index = self.focused_card.index - 1
@@ -398,11 +420,11 @@ class TeleprompterMain(FloatLayout):
                 self.focused_card = c
             else:
                 c.set_focus(False)
-    
+
     def enter_prompt(self):
         self.prompt_widget.draw_images(self.focused_card.images)
         self.set_mode("prompt")
-    
+
     def set_mode(self, mode):
         if mode == "prompt":
             self.mode = "prompt"
