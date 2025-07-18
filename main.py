@@ -3,8 +3,9 @@ import os
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
-from kivy.core.window import Window
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.core.window import Window
 from kivy.properties import ObjectProperty
 
 from pptx import Presentation
@@ -28,7 +29,7 @@ class SongCard(
     focus = ObjectProperty()  # Expose to template
     is_placeholder = ObjectProperty()  # Expose to template
 
-    def __init__(self, sequence=None, artist=None, song=None, index=None, is_placeholder=False, **kwargs):
+    def __init__(self, sequence=None, artist=None, song=None, index=None, is_placeholder=False, prompts=None, **kwargs):
         super().__init__(**kwargs)
         opacity = 1
         if is_placeholder:
@@ -41,6 +42,7 @@ class SongCard(
 
             self.orientation = "vertical"
             self.focus = False
+            self.prompts = prompts
 
             self.sequence_label_widget = Label(text=sequence, font_size="18sp", color=WHITE)
             self.artist_label_widget = Label(text=artist, font_size="24sp", color=WHITE)
@@ -59,16 +61,32 @@ class SongCard(
         self.focus = focus
 
 
-class TeleprompterMain(GridLayout):
+class Prompt(BoxLayout):
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.focus = False
+        self.drawn_prompts = []
+    
+    def draw_prompts(self, prompts):
+        for p in self.drawn_prompts:
+            self.remove_widget(p)
+        
+        for p in prompts:
+            label = Label(text=p, font_size="18sp", color=WHITE)
+            self.drawn_prompts.append(label)
+            self.add_widget(label)
 
-        self.orientation = "lr-tb"
+
+class TeleprompterMain(FloatLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
         self.input_state = None
 
         # Check for Foot Switch
         self._fs_device = self._find_foot_switch_device()
-        # Start the input listener thread
         threading.Thread(target=self._detect_foot_switch_events, daemon=True).start()
 
         # If keyboard we need this
@@ -80,8 +98,6 @@ class TeleprompterMain(GridLayout):
         self._previous_keyboard_state = None
 
         # Build our UI
-        Window.fullscreen = True
-        
         self.mode = "home"  # home or prompt
         self.focused_card = None
         self.card_instances = None
@@ -102,7 +118,7 @@ class TeleprompterMain(GridLayout):
                         "sequence": info.split("-")[0].strip(),
                         "artist": info.split("-")[1].strip(),
                         "song": info.split("-")[2].strip(),
-                        "prompt": self._presentation_to_prompt(
+                        "prompts": self._presentation_to_prompt(
                             os.path.join(songbook_folder, f)
                         ),
                     }
@@ -204,6 +220,7 @@ class TeleprompterMain(GridLayout):
         if key == "escape":
             # Stop listener
             keyboard.release()
+            App.get_running_app().stop()
 
         if btn and state:
             self.input_state = (btn, state)
@@ -234,19 +251,53 @@ class TeleprompterMain(GridLayout):
 
     def _decide_action(self):
         if self.input_state:
-            if self.input_state[0] == "KEY_A" and self.input_state[1] in [
-                "hold",
-                "down",
-            ]:
-                self.focus_previous_card()
-            if self.input_state[0] == "KEY_C" and self.input_state[1] in [
-                "hold",
-                "down",
-            ]:
-                self.focus_next_card()
+            if self.mode == "home":
+                if self.input_state[0] == "KEY_A" and self.input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    self.focus_previous_card()
+                if self.input_state[0] == "KEY_C" and self.input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    self.focus_next_card()
+
+                if self.input_state[0] == "KEY_B" and self.input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    self.enter_prompt()
+            else:
+                if self.input_state[0] == "KEY_A" and self.input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    pass
+                if self.input_state[0] == "KEY_C" and self.input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    pass
+
+                if self.input_state[0] == "KEY_B" and self.input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    self.set_mode("home")
 
     def _initialize_ui(self):
+        
+        # Window level
+        Window.fullscreen = True
 
+        # Main box (Create Grid for Home and Box for Prompt)
+        self.home_layout = GridLayout(cols=HOME_MIN_COLS_NUM, rows=HOME_MIN_ROWS_NUM, spacing=10, padding=10, orientation="lr-tb")
+        self.prompt_layout = BoxLayout(opacity=0)
+        self.add_widget(self.home_layout)
+        self.add_widget(self.prompt_layout)
+
+        # Fill home
         # Do we need placeholders
         if len(self.cards) < HOME_MIN_COLS_NUM * HOME_MIN_ROWS_NUM:
             to_add = HOME_MIN_COLS_NUM * HOME_MIN_ROWS_NUM - len(self.cards)
@@ -255,18 +306,21 @@ class TeleprompterMain(GridLayout):
                 self.cards.append({"is_placeholder": True, "sequence": None, "artist": None, "song": None})
                 to_add = to_add - 1
 
-        GridLayout.__init__(self, cols=HOME_MIN_COLS_NUM, rows=HOME_MIN_ROWS_NUM, spacing=10, padding=10)
-
+        # Create card widgets and place into grid
         self.card_instances = []
         for index, c in enumerate(self.cards):
             c_instance = SongCard(
-                sequence=c["sequence"], artist=c["artist"], song=c["song"],
+                sequence=c["sequence"], artist=c["artist"], song=c["song"], prompts=c.get("prompts", []),
                 is_placeholder=c.get("is_placeholder", False), index=index
             )
-            self.add_widget(c_instance)
+            self.home_layout.add_widget(c_instance)
             self.card_instances.append(c_instance)
         self.card_instances[0].set_focus()
         self.focused_card = self.card_instances[0]
+        
+        # Fill Prompt
+        self.prompt_widget = Prompt()
+        self.prompt_layout.add_widget(self.prompt_widget)
 
     def focus_previous_card(self):
         next_index = self.focused_card.index - 1
@@ -290,11 +344,19 @@ class TeleprompterMain(GridLayout):
             else:
                 c.set_focus(False)
     
-    def toggle_mode(self):
-        if self.mode == "home":
+    def enter_prompt(self):
+        self.prompt_widget.draw_prompts(self.focused_card.prompts)
+        self.set_mode("prompt")
+    
+    def set_mode(self, mode):
+        if mode == "prompt":
             self.mode = "prompt"
+            self.home_layout.opacity = 0
+            self.prompt_layout.opacity = 1
         else:
-            self.mode = "prompt"
+            self.mode = "home"
+            self.home_layout.opacity = 1
+            self.prompt_layout.opacity = 0
 
 
 class TeleprompterApp(App):

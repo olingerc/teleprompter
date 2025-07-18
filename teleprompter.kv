@@ -17,6 +17,16 @@
             pos: self.x+5, self.y+5
             size: self.width-10, self.height-10
 
+<Prompt>:
+    canvas:
+
+        # Draw border
+        Color:
+            rgb: (0, 0, 0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+
 <TeleprompterMain>:
     canvas:
                  
