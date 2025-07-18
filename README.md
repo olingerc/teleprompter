@@ -2,12 +2,8 @@
 
 ## Requirements
 
-```python
-kivy
-evdev
-python-pptx
-pdf2image
-```
+`pip install kivy evdev python-pptx pdf2image`
+
 
 ## Prepare system:
 
