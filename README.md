@@ -8,11 +8,14 @@ evdev
 ```
 
 ## Prepare system:
+
 input reading needs sudo access or
 `sudo usermod -aG input $USER`
 
 ## Inestigating my Foot Switch
+
 `sudo evtest`
+
 ```
 Bus 001 Device 004: ID 3553:b001 PCsensor FootSwitch
 
@@ -22,14 +25,17 @@ Bus 001 Device 004: ID 3553:b001 PCsensor FootSwitch
 ```
 
 ### Finding events of My footswitch
+
 Using evdev I found:
 
-device.path    device.name    device.phys
+device.path device.name device.phys
+
 ```
 /dev/input/event9 PCsensor FootSwitch usb-0000:01:00.0-1.2/input1
 /dev/input/event8 PCsensor FootSwitch Mouse usb-0000:01:00.0-1.2/input0
 /dev/input/event7 PCsensor FootSwitch Keyboard usb-0000:01:00.0-1.2/input0
 ```
+
 ```
 /dev/input/event7
 dev = InputDevice("/dev/input/event7")

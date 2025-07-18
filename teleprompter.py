@@ -9,11 +9,12 @@ from evdev import InputDevice, list_devices, categorize
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
 WIRED_KEYBOARD_DEVICE_NAME_SUFFIX = "Wired Keyboard"
 
+
 class InputMonitor(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = 'vertical'
-        self.label = Label(text='Waiting for footswitch input...', font_size='24sp')
+        self.orientation = "vertical"
+        self.label = Label(text="Waiting for footswitch input...", font_size="24sp")
         self.add_widget(self.label)
         self.input_state = None
 
@@ -42,7 +43,9 @@ class InputMonitor(BoxLayout):
                 kb_device = device
                 break
         if fs_device is None and kb_device is None:
-            raise Exception(f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX} or {WIRED_KEYBOARD_DEVICE_NAME_SUFFIX}")
+            raise Exception(
+                f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX} or {WIRED_KEYBOARD_DEVICE_NAME_SUFFIX}"
+            )
         return fs_device, kb_device
 
     def detect_events(self):
@@ -58,14 +61,14 @@ class InputMonitor(BoxLayout):
                         btn = "KEY_B"
                     elif "KEY_C" in as_string:
                         btn = "KEY_C"
-                    
+
                     if "up" in as_string:
                         state = "up"
                     elif "down" in as_string:
                         state = "down"
                     elif "hold" in as_string:
                         state = "hold"
-                
+
                     if btn and state:
                         self.input_state = (btn, state)
         elif self.kb_device:
@@ -80,14 +83,14 @@ class InputMonitor(BoxLayout):
                         btn = "KEY_B"
                     elif "KEY_3" in as_string:
                         btn = "KEY_C"
-                    
+
                     if "up" in as_string:
                         state = "up"
                     elif "down" in as_string:
                         state = "down"
                     elif "hold" in as_string:
                         state = "hold"
-                
+
                     if btn and state:
                         self.input_state = (btn, state)
 
@@ -102,6 +105,6 @@ class TelePrompterApp(App):
     def build(self):
         return InputMonitor()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     TelePrompterApp().run()
-    
