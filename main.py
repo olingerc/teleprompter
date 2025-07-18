@@ -218,6 +218,7 @@ class TeleprompterMain(FloatLayout):
 
                     if btn and state:
                         self.input_state = (btn, state)
+                        self._decide_action()
 
     def _keyboard_closed(self):
         # Do not unbind, otherwise escape from prompt will switch to home but then no keys are detected anymore
