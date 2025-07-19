@@ -1,24 +1,21 @@
-import os
 import subprocess
+import threading
+import os
 
-from pdf2image import convert_from_bytes
+from evdev import InputDevice, list_devices, categorize
 
 from kivy.app import App
 from kivy.uix.label import Label
-from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
-from kivy.properties import ObjectProperty, StringProperty
+from kivy.properties import ObjectProperty, StringProperty, BooleanProperty
 from kivy.uix.image import Image
+from kivy.clock import Clock
 
-import time
-
+from pdf2image import convert_from_bytes
 from pptx import Presentation
-
-import threading
-from evdev import InputDevice, list_devices, categorize
 
 
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
@@ -29,11 +26,27 @@ HOME_MIN_ROWS_NUM = 3
 HOME_MIN_COLS_NUM = 6
 
 
+class SequenceLabel(Label):
+    pass
+
+
+class ArtistLabel(Label):
+    pass
+
+
+class SongLabel(Label):
+    pass
+
+
 class SongCard(
     BoxLayout,
 ):
 
-    focus = ObjectProperty()  # Expose to template
+    focus = ObjectProperty()
+    is_placeholder = BooleanProperty()
+    sequence = ObjectProperty()
+    artist = ObjectProperty()
+    song = ObjectProperty()
 
     def __init__(
         self,
@@ -47,34 +60,15 @@ class SongCard(
         **kwargs,
     ):
         super().__init__(**kwargs)
-        opacity = 1
-        if is_placeholder:
-            opacity = 0
-        BoxLayout.__init__(self, padding="100sp", opacity=opacity)
+        self.focus = False
 
         self.index = index
-
-        if is_placeholder is False:
-
-            self.orientation = "vertical"
-            self.focus = False
-            self.images = images
-            self.number_of_slides = number_of_slides
-
-            self.sequence_label_widget = Label(
-                text=sequence, font_size="18sp", color=WHITE
-            )
-            self.artist_label_widget = Label(text=artist, font_size="24sp", color=WHITE)
-            self.song_label_widget = Label(
-                text=song,
-                font_size="24sp",
-                color=WHITE,
-                width=self.width,
-            )
-            self.song_label_widget.text_size = (self.song_label_widget.width, None)
-            self.add_widget(self.sequence_label_widget)
-            self.add_widget(self.artist_label_widget)
-            self.add_widget(self.song_label_widget)
+        self.is_placeholder = is_placeholder
+        self.images = images
+        self.number_of_slides = number_of_slides
+        self.sequence = sequence
+        self.artist = artist
+        self.song = song
 
     def set_focus(self, focus=True):
         self.focus = focus
@@ -110,7 +104,7 @@ class PromptLayout(BoxLayout):
         self.add_widget(image)
 
     def prev_image(self):
-        if self.current_image_number -1 < 0:
+        if self.current_image_number - 1 < 0:
             return
         else:
             for p in self.drawn_images:
@@ -118,9 +112,9 @@ class PromptLayout(BoxLayout):
             image = Image(source=self.images[self.current_image_number - 1])
             self.drawn_images.append(image)
             self.add_widget(image)
-            
+
             self.current_image_number = self.current_image_number - 1
-        
+
     def next_image(self):
         if self.current_image_number + 1 > self.number_of_slides - 1:
             return
@@ -136,7 +130,7 @@ class PromptLayout(BoxLayout):
 
 class TeleprompterWidget(FloatLayout):
 
-    mode = ObjectProperty("loading")  # Expose to template
+    mode = StringProperty("loading")  # Expose to template
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -144,7 +138,7 @@ class TeleprompterWidget(FloatLayout):
         self._input_state = None
         self._card_instances = None
         self._placeholders_num = 0
-        
+
         self.focused_card = None
 
         # Check for Foot Switch
@@ -158,10 +152,6 @@ class TeleprompterWidget(FloatLayout):
             on_key_up=self._on_keyboard_up,
         )
         self._previous_keyboard_state = None
-
-        # Build our UI
-        # Window.fullscreen = True
-        Window.allow_screensaver = False
 
     """
     Setup UI
@@ -487,11 +477,14 @@ class TeleprompterApp(App):
     HOME_MIN_ROWS_NUM = HOME_MIN_ROWS_NUM
     HOME_MIN_COLS_NUM = HOME_MIN_COLS_NUM
 
+    Window.fullscreen = True
+    Window.allow_screensaver = False
+
     def build(self):
         main = TeleprompterWidget()
         main.cards = main.load_songbook()
         main.initialize_home()
-        main.set_mode("home")
+        Clock.schedule_once(lambda dt: main.set_mode("home"), 2)
         return main
 
 

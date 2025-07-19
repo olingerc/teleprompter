@@ -26,6 +26,11 @@
          
 
 <SongCard>:
+    opacity: 0 if self.is_placeholder is True else 1
+    padding: 10
+    orientation: 'vertical'
+    id: song_card
+
     canvas:
 
         # Draw border
@@ -41,3 +46,10 @@
         RoundedRectangle:
             pos: self.x+5, self.y+5
             size: self.width-10, self.height-10
+
+    SequenceLabel:
+        text: song_card.sequence or ""
+    ArtistLabel:
+        text: song_card.artist or ""
+    SongLabel:
+        text: song_card.song or ""
