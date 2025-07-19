@@ -56,7 +56,6 @@ class SongCard(
         index=None,
         is_placeholder=False,
         images=None,
-        number_of_slides=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -65,7 +64,6 @@ class SongCard(
         self.index = index
         self.is_placeholder = is_placeholder
         self.images = images
-        self.number_of_slides = number_of_slides
         self.sequence = str(index + 1)
         self.artist = artist
         self.song = song
@@ -88,8 +86,9 @@ class HomeLayout(GridLayout):
 
 class PromptLayout(FloatLayout):
     drawn_images = []
-    current_image_number = ObjectProperty()
+    current_image_number = ObjectProperty(0)
     current_image_source = ObjectProperty()
+    number_of_slides = ObjectProperty()
 
     def load_images(self, images):
         self.images = images
@@ -317,7 +316,6 @@ class TeleprompterWidget(FloatLayout):
                 c.set_focus(False)
 
     def enter_prompt(self):
-        self.ids["prompt_layout"].number_of_slides = self.focused_card.number_of_slides
         self.ids["prompt_layout"].load_images(self.focused_card.images)
         self.set_mode("prompt")
 
@@ -407,8 +405,7 @@ class TeleprompterWidget(FloatLayout):
                         "images": self._presentation_to_images(
                             os.path.join(songbook_folder, f),
                             number_of_slides,
-                        ),
-                        "number_of_slides": number_of_slides,
+                        )
                     }
                     cards.append(card)
         if len(cards) == 0:
@@ -447,7 +444,6 @@ class TeleprompterWidget(FloatLayout):
                 song=c["song"],
                 images=c.get("images", []),
                 is_placeholder=c.get("is_placeholder", False),
-                number_of_slides=c.get("number_of_slides"),
                 index=index,
             )
             self._card_instances.append(c_instance)

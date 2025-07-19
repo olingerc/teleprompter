@@ -33,10 +33,14 @@
             #pos_hint: {'center_x': 0.5, 'center_y': 0.5}
 
         Label:
-            color: 1,0,1,1
-            font_size: 50
-            #text: str(prompt_layout.current_image_number + 1)
-            text: prompt_layout.current_image_source or "none"
+            size_hint: 1, None
+            text_size: self.width, None
+            valign: 'bottom'
+            halign: 'right'
+            color: 1,1,1,1
+            font_size: self.height * 0.75
+            padding: 50
+            text: str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides)
          
 
 <SongCard>:
