@@ -23,6 +23,20 @@
     PromptLayout:
         id: prompt_layout
         opacity: 1 if main.mode == 'prompt' else 0
+
+        Image:
+            id: current_image
+            source: prompt_layout.current_image_source
+            #allow_stretch: True
+            #keep_ratio: True
+            #size_hint: 1, 1
+            #pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+
+        Label:
+            color: 1,0,1,1
+            font_size: 50
+            #text: str(prompt_layout.current_image_number + 1)
+            text: prompt_layout.current_image_source or "none"
          
 
 <SongCard>:
@@ -49,7 +63,25 @@
 
     SequenceLabel:
         text: song_card.sequence or ""
+
+        halign: 'center'
+        size_hint: 1, 0.2
+        font_size: self.width/20
+        text_size: self.width, None
+        height: self.texture_size[1]
     ArtistLabel:
         text: song_card.artist or ""
+        
+        halign: 'center'
+        size_hint: 1, 0.4
+        font_size: self.width/10
+        text_size: self.width, None
+        height: self.texture_size[1]
     SongLabel:
         text: song_card.song or ""
+        
+        halign: 'center'
+        size_hint: 1, 0.4
+        font_size: self.width/10
+        text_size: self.width, None
+        height: self.texture_size[1]

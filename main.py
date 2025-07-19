@@ -66,7 +66,7 @@ class SongCard(
         self.is_placeholder = is_placeholder
         self.images = images
         self.number_of_slides = number_of_slides
-        self.sequence = sequence
+        self.sequence = str(index + 1)
         self.artist = artist
         self.song = song
 
@@ -86,22 +86,16 @@ class HomeLayout(GridLayout):
     pass
 
 
-class PromptLayout(BoxLayout):
+class PromptLayout(FloatLayout):
     drawn_images = []
-    current_image_number = 0
+    current_image_number = ObjectProperty()
+    current_image_source = ObjectProperty()
 
-    def __init__(self, images=None, number_of_slides=None, **kwargs):
-        super().__init__(**kwargs)
+    def load_images(self, images):
         self.images = images
-        self.number_of_slides = number_of_slides
-
-    def draw_first_image(self):
-        for p in self.drawn_images:
-            self.remove_widget(p)
-
-        image = Image(source=self.images[0])
-        self.drawn_images.append(image)
-        self.add_widget(image)
+        self.number_of_slides = len(images)
+        self.current_image_number = 0
+        self.current_image_source = self.images[0]
 
     def prev_image(self):
         if self.current_image_number - 1 < 0:
@@ -109,11 +103,8 @@ class PromptLayout(BoxLayout):
         else:
             for p in self.drawn_images:
                 self.remove_widget(p)
-            image = Image(source=self.images[self.current_image_number - 1])
-            self.drawn_images.append(image)
-            self.add_widget(image)
-
             self.current_image_number = self.current_image_number - 1
+            self.current_image_source = self.images[self.current_image_number]
 
     def next_image(self):
         if self.current_image_number + 1 > self.number_of_slides - 1:
@@ -121,11 +112,8 @@ class PromptLayout(BoxLayout):
         else:
             for p in self.drawn_images:
                 self.remove_widget(p)
-            image = Image(source=self.images[self.current_image_number + 1])
-            self.drawn_images.append(image)
-            self.add_widget(image)
-
             self.current_image_number = self.current_image_number + 1
+            self.current_image_source = self.images[self.current_image_number]
 
 
 class TeleprompterWidget(FloatLayout):
@@ -329,9 +317,8 @@ class TeleprompterWidget(FloatLayout):
                 c.set_focus(False)
 
     def enter_prompt(self):
-        self.ids["prompt_layout"].images = self.focused_card.images
         self.ids["prompt_layout"].number_of_slides = self.focused_card.number_of_slides
-        self.ids["prompt_layout"].draw_first_image()
+        self.ids["prompt_layout"].load_images(self.focused_card.images)
         self.set_mode("prompt")
 
     def prompt_prev(self):
@@ -484,7 +471,7 @@ class TeleprompterApp(App):
         main = TeleprompterWidget()
         main.cards = main.load_songbook()
         main.initialize_home()
-        Clock.schedule_once(lambda dt: main.set_mode("home"), 2)
+        Clock.schedule_once(lambda dt: main.set_mode("home"), 0)
         return main
 
 
