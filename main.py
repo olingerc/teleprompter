@@ -1,6 +1,7 @@
 import subprocess
 import threading
 import os
+from timeit import main
 
 from evdev import InputDevice, list_devices, categorize
 
@@ -409,14 +410,14 @@ class TeleprompterWidget(FloatLayout):
                     }
                     cards.append(card)
         if len(cards) == 0:
-            return [
+            self.cards =  [
                 {"sequence": "1", "artist": "A", "song": "Hallo"},
                 {"sequence": "2", "artist": "B", "song": "Me"},
                 {"sequence": "3", "artist": "C", "song": "Too"},
                 {"sequence": "4", "artist": "D", "song": "Sing"},
             ]
         else:
-            return cards
+            self.cards = cards
 
     def initialize_home(self):
 
@@ -434,6 +435,11 @@ class TeleprompterWidget(FloatLayout):
                     }
                 )
                 to_add = to_add - 1
+        else:
+            # Need to increase grid space
+            rows_needed = len(self.cards) // HOME_MIN_COLS_NUM
+            self.ids["home_layout"].rows = rows_needed + 1
+
 
         # Create card widgets
         self._card_instances = []
@@ -465,9 +471,9 @@ class TeleprompterApp(App):
 
     def build(self):
         main = TeleprompterWidget()
-        main.cards = main.load_songbook()
+        main.load_songbook()
         main.initialize_home()
-        Clock.schedule_once(lambda dt: main.set_mode("home"), 0)
+        main.set_mode("home")
         return main
 
 
