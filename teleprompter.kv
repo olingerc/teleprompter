@@ -1,4 +1,29 @@
-#:kivy 1.0.9
+<TeleprompterWidget>:
+    id: main
+
+    LoadingScreenLayout:
+        ls_text: 'Loading ...'
+        id: ls_screen
+        opacity: 1 if main.mode == 'loading' else 0
+        Label:
+            id: ls-label
+            font_size: 50
+            text: ls_screen.ls_text
+    
+    HomeLayout:
+        id: home_layout
+        orientation: 'lr-tb'
+        cols: app.HOME_MIN_COLS_NUM
+        rows: app.HOME_MIN_ROWS_NUM
+        spacing: 10
+        padding: 10
+
+        opacity: 1 if main.mode == 'home' else 0
+    
+    PromptLayout:
+        id: prompt_layout
+        opacity: 1 if main.mode == 'prompt' else 0
+         
 
 <SongCard>:
     canvas:
@@ -16,11 +41,3 @@
         RoundedRectangle:
             pos: self.x+5, self.y+5
             size: self.width-10, self.height-10
-
-<Prompt>:
-    canvas:
-
-<TeleprompterMain>:
-    canvas:
-                 
-         
