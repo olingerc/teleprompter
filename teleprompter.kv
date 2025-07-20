@@ -12,13 +12,19 @@
     
     HomeLayout:
         id: home_layout
+        orientation: 'vertical'
+
+        opacity: 1 if main.mode == 'home' else 0
+
+    SongbookLayout:
+        id: songbook_layout
         orientation: 'lr-tb'
-        cols: app.HOME_MIN_COLS_NUM
-        rows: app.HOME_MIN_ROWS_NUM
+        cols: app.SONGBOOK_MIN_COLS_NUM
+        rows: app.SONGBOOK_MIN_ROWS_NUM
         spacing: 10
         padding: 10
 
-        opacity: 1 if main.mode == 'home' else 0
+        opacity: 1 if main.mode == 'songbook' else 0
     
     PromptLayout:
         id: prompt_layout
@@ -98,6 +104,46 @@
         height: self.texture_size[1]
     SongLabel:
         text: song_card.song or ""
+        
+        halign: 'center'
+        size_hint: 1, 0.4
+        font_size: self.width/10
+        text_size: self.width, None
+        height: self.texture_size[1]
+
+
+<Songbook>:
+    #opacity: 0 if self.is_placeholder is True else 1
+    padding: 10
+    orientation: 'vertical'
+    id: songbook
+
+    canvas:
+
+        # Draw border
+        Color:
+            rgb: (0.8, 0.8, 0.8) if self.focus else (0.2, 0.2, 0.2)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+        
+        # Draw content
+        Color:
+            rgba: (0.2, 0.2, 0.2, 1)
+        RoundedRectangle:
+            pos: self.x+5, self.y+5
+            size: self.width-10, self.height-10
+
+    SequenceLabel:
+        text: songbook.sequence or ""
+
+        halign: 'center'
+        size_hint: 1, 0.2
+        font_size: self.width/20
+        text_size: self.width, None
+        height: self.texture_size[1]
+    Label:
+        text: songbook.title or ""
         
         halign: 'center'
         size_hint: 1, 0.4

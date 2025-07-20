@@ -21,9 +21,19 @@ FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
 BLACK = [0, 0, 0, 1]
 WHITE = [1, 1, 1, 1]
 
-HOME_MIN_ROWS_NUM = 3
-HOME_MIN_COLS_NUM = 6
+SONGBOOK_MIN_ROWS_NUM = 3
+SONGBOOK_MIN_COLS_NUM = 6
 
+SONGBOOKS_FOLDER = "songbooks"
+TEMP_FOLDER = "converted"
+
+
+class Songbook(BoxLayout):
+    title = StringProperty()
+    sequence = StringProperty()
+    cards = ObjectProperty()
+    focus = ObjectProperty()
+    index = ObjectProperty()
 
 class SequenceLabel(Label):
     pass
@@ -78,8 +88,10 @@ class LoadingScreenLayout(BoxLayout):
         self.ls_text = self.previous_text + "\n" + text
         self.previous_text = self.previous_text + "\n" + text
 
+class HomeLayout(BoxLayout):
+    pass
 
-class HomeLayout(GridLayout):
+class SongbookLayout(GridLayout):
     pass
 
 
@@ -150,6 +162,9 @@ class PrompterBottomBar(BoxLayout):
 class TeleprompterWidget(FloatLayout):
 
     mode = StringProperty("loading")  # Expose to template
+    current_songbook = ObjectProperty()
+
+    focused_songbook = ObjectProperty()
     focused_card = ObjectProperty()
 
     def __init__(self, **kwargs):
@@ -159,8 +174,7 @@ class TeleprompterWidget(FloatLayout):
         self._card_instances = None
         self._placeholders_num = 0
 
-        self.focused_card = None
-
+        self.song_books = []
         # Check for Foot Switch
         self._fs_device = self._find_foot_switch_device()
         threading.Thread(target=self._detect_foot_switch_events, daemon=True).start()
@@ -253,8 +267,14 @@ class TeleprompterWidget(FloatLayout):
             if self.mode == "home":
                 keyboard.release()
                 App.get_running_app().stop()
-            else:
+            elif self.mode == "songbook":
                 self.set_mode("home")
+                self._keyboard.bind(
+                    on_key_down=self._on_keyboard_down,
+                    on_key_up=self._on_keyboard_up,
+                )
+            else:
+                self.set_mode("songbook")
                 self._keyboard.bind(
                     on_key_down=self._on_keyboard_down,
                     on_key_up=self._on_keyboard_up,
@@ -291,6 +311,23 @@ class TeleprompterWidget(FloatLayout):
                     "hold",
                     "down",
                 ]:
+                    self.focus_previous_songbook()
+                if self._input_state[0] == "KEY_C" and self._input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    self.focus_next_songbook()
+
+                if self._input_state[0] == "KEY_B" and self._input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
+                    self.songbook_open(self.focused_songbook)
+            elif self.mode == "songbook":
+                if self._input_state[0] == "KEY_A" and self._input_state[1] in [
+                    "hold",
+                    "down",
+                ]:
                     self.focus_previous_card()
                 if self._input_state[0] == "KEY_C" and self._input_state[1] in [
                     "hold",
@@ -319,7 +356,7 @@ class TeleprompterWidget(FloatLayout):
                     "hold",
                     "down",
                 ]:
-                    self.set_mode("home")
+                    self.set_mode("songbook")
 
     """
     Actions
@@ -347,6 +384,28 @@ class TeleprompterWidget(FloatLayout):
             else:
                 c.set_focus(False)
 
+    def focus_previous_songbook(self):
+        next_index = self.focused_songbook.index - 1
+        if next_index < 0:
+            next_index = len(self.song_books) - 1
+        for sb in self.song_books:
+            if sb.index == next_index:
+                sb.focus = True
+                self.focused_songbook = sb
+            else:
+                sb.focus = False
+
+    def focus_next_songbook(self):
+        next_index = self.focused_songbook.index + 1
+        if next_index >= len(self.song_books):
+            next_index = 0
+        for sb in self.song_books:
+            if sb.index == next_index:
+                sb.focus = True
+                self.focused_songbook = sb
+            else:
+                sb.focus = False
+
     def enter_prompt(self):
         self.ids["prompt_layout"].load(self.focused_card)
         self.set_mode("prompt")
@@ -357,22 +416,26 @@ class TeleprompterWidget(FloatLayout):
     def prompt_next(self):
         self.ids["prompt_layout"].next_image()
 
+    def songbook_open(self, songbook):
+        self.initialize_songbook(songbook)
+        self.set_mode("songbook")
+
     def set_mode(self, mode):
         self.mode = mode
 
     """
-    Load Song Book
+    Load Song Books
     """
 
     def _number_of_slides(self, path_to_presentation):
         prs = Presentation(path_to_presentation)
         return len(prs.slides)
 
-    def _presentation_to_images(self, ppt_path, num_slides):
+    def _presentation_to_images(self, ppt_path, num_slides, songbook_name):
         IMAGE_FORMAT = "jpg"
-        OUT_DIR = "ppt-previews"
+        OUT_DIR = TEMP_FOLDER + "/" + songbook_name
         if not os.path.exists(OUT_DIR):
-            os.mkdir(OUT_DIR)
+            os.makedirs(OUT_DIR)
 
         ### start = time.time()
         message = "Converting {}.".format(os.path.basename(ppt_path))
@@ -416,48 +479,67 @@ class TeleprompterWidget(FloatLayout):
 
         return created_image_paths
 
-    def load_songbook(self):
-        songbook_folder = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "songbook"
+    def load_songbooks(self):
+        songbooks_folder = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), SONGBOOKS_FOLDER
         )
-        cards = []
-        if os.path.exists(songbook_folder):
-            for f in sorted(os.listdir(songbook_folder)):
+        if os.path.exists(songbooks_folder) is False:
+            raise Exception(f"Songbooks folder {songbooks_folder} does not exist.")
+        
+        self.song_boooks = []
+        for sb_index, sb in enumerate(sorted(os.listdir(songbooks_folder))):
+            sb_path = os.path.join(songbooks_folder, sb)
+            if not os.path.isdir(sb_path):
+                continue
+        
+            cards = []
+            for f in sorted(os.listdir(sb_path)):
                 if f.startswith("~"):
                     continue
                 if f.endswith("pptx"):
                     info = f.replace(".pptx", "")
                     number_of_slides = self._number_of_slides(
-                        os.path.join(songbook_folder, f)
+                        os.path.join(sb_path, f)
                     )
                     card = {
                         "sequence": info.split("-")[0].strip(),
                         "artist": info.split("-")[1].strip(),
                         "song": info.split("-")[2].strip(),
                         "images": self._presentation_to_images(
-                            os.path.join(songbook_folder, f),
+                            os.path.join(sb_path, f),
                             number_of_slides,
+                            sb
                         )
                     }
                     cards.append(card)
-        if len(cards) == 0:
-            self.cards =  [
-                {"sequence": "1", "artist": "A", "song": "Hallo"},
-                {"sequence": "2", "artist": "B", "song": "Me"},
-                {"sequence": "3", "artist": "C", "song": "Too"},
-                {"sequence": "4", "artist": "D", "song": "Sing"},
-            ]
-        else:
-            self.cards = cards
+            self.song_books.append(Songbook(
+                sequence=sb.split("-")[0].strip(),
+                title=sb.split("-")[1].strip(),
+                cards=cards,
+                index=sb_index,
+                focus=False
+            ))
 
     def initialize_home(self):
 
+        # Create card widgets
+        for sb in self.song_books:
+            self.ids["home_layout"].add_widget(sb)
+
+        # Focus first
+        self.song_books[0].focus = True
+        self.focused_songbook = self.song_books[0]
+
+    def initialize_songbook(self, songbook):
+        
+        self.ids["songbook_layout"].clear_widgets()
+
         # Do we need placeholders ?
-        if len(self.cards) < HOME_MIN_COLS_NUM * HOME_MIN_ROWS_NUM:
-            to_add = HOME_MIN_COLS_NUM * HOME_MIN_ROWS_NUM - len(self.cards)
+        if len(songbook.cards) < SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM:
+            to_add = SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM - len(songbook.cards)
             self._placeholders_num = to_add
             while to_add > 0:
-                self.cards.append(
+                songbook.cards.append(
                     {
                         "is_placeholder": True,
                         "sequence": None,
@@ -468,13 +550,13 @@ class TeleprompterWidget(FloatLayout):
                 to_add = to_add - 1
         else:
             # Need to increase grid space
-            rows_needed = len(self.cards) // HOME_MIN_COLS_NUM
-            self.ids["home_layout"].rows = rows_needed + 1
+            rows_needed = len(songbook.cards) // SONGBOOK_MIN_COLS_NUM
+            self.ids["songbook_layout"].rows = rows_needed + 1
 
 
         # Create card widgets
         self._card_instances = []
-        for index, c in enumerate(self.cards):
+        for index, c in enumerate(songbook.cards):
             c_instance = SongCard(
                 sequence=c["sequence"],
                 artist=c["artist"],
@@ -484,7 +566,7 @@ class TeleprompterWidget(FloatLayout):
                 index=index,
             )
             self._card_instances.append(c_instance)
-            self.ids["home_layout"].add_widget(c_instance)
+            self.ids["songbook_layout"].add_widget(c_instance)
 
         # Focus first card
         self._card_instances[0].set_focus()
@@ -497,15 +579,16 @@ class TeleprompterWidget(FloatLayout):
 class TeleprompterApp(App):
 
     # Expose constants to kivy
-    HOME_MIN_ROWS_NUM = HOME_MIN_ROWS_NUM
-    HOME_MIN_COLS_NUM = HOME_MIN_COLS_NUM
+    SONGBOOK_MIN_ROWS_NUM = SONGBOOK_MIN_ROWS_NUM
+    SONGBOOK_MIN_COLS_NUM = SONGBOOK_MIN_COLS_NUM
 
     Window.fullscreen = True
     Window.allow_screensaver = False
 
     def build(self):
         main = TeleprompterWidget()
-        main.load_songbook()
+        main.load_songbooks()
+        main.current_songbook = main.song_books[0] if main.song_books else None
         main.initialize_home()
         main.set_mode("home")
         return main
