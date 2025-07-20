@@ -23,25 +23,36 @@
     PromptLayout:
         id: prompt_layout
         opacity: 1 if main.mode == 'prompt' else 0
+        orientation: 'vertical'
+
+        PrompterTopBar:
+            size_hint: 1, None
+            orientation: 'horizontal'
+
+            Label:
+                text: prompt_layout.current_card.artist + ' - ' + prompt_layout.current_card.song if prompt_layout.current_card else ""
+                size_hint: 1, None
+                font_size: self.height * 0.75
+
+            Label:
+                size_hint: 1, None
+                text_size: self.width, None
+                color: 1,1,1,1
+                font_size: self.height * 0.75
+                text: 'Page ' + str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides) + ' Song ' + str(prompt_layout.current_card.index + 1) + '/' + str(len(prompt_layout.all_cards) - prompt_layout.placeholders_num) if prompt_layout.current_card else ""
 
         Image:
             id: current_image
             source: prompt_layout.current_image_source
-            #allow_stretch: True
-            #keep_ratio: True
-            #size_hint: 1, 1
-            #pos_hint: {'center_x': 0.5, 'center_y': 0.5}
 
-        Label:
+
+        PrompterBottomBar:
             size_hint: 1, None
-            text_size: self.width, None
-            valign: 'bottom'
-            halign: 'right'
-            color: 1,1,1,1
-            font_size: self.height * 0.75
-            padding: 50
-            text: str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides)
-         
+            Label:
+                text: 'NEXT: ' + prompt_layout.next_card.artist + ' - ' + prompt_layout.next_card.song if prompt_layout.next_card else ""
+                size_hint: 1, None
+                font_size: self.height * 0.75
+
 
 <SongCard>:
     opacity: 0 if self.is_placeholder is True else 1

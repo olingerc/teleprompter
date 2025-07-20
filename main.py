@@ -12,8 +12,6 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty, BooleanProperty
-from kivy.uix.image import Image
-from kivy.clock import Clock
 
 from pdf2image import convert_from_bytes
 from pptx import Presentation
@@ -85,40 +83,74 @@ class HomeLayout(GridLayout):
     pass
 
 
-class PromptLayout(FloatLayout):
-    drawn_images = []
+class PromptLayout(BoxLayout):
     current_image_number = ObjectProperty(0)
     current_image_source = ObjectProperty()
     number_of_slides = ObjectProperty()
+    
+    current_card = ObjectProperty()
+    next_card = ObjectProperty()
+    
+    all_cards = ObjectProperty()
+    placeholders_num = ObjectProperty()
 
-    def load_images(self, images):
-        self.images = images
-        self.number_of_slides = len(images)
+    def load(self, current_card):
+        
+        # Prepare first draw
+        self.current_card = current_card
+        self.images = current_card.images
+        self.number_of_slides = len(current_card.images)
         self.current_image_number = 0
         self.current_image_source = self.images[0]
+        self.next_card = self.get_next_card()
+    
+    def get_previous_card(self):
+        next_index = self.current_card.index - 1
+        if next_index < 0:
+            next_index = len(self.all_cards) - 1 - self.placeholders_num
+        for c in self.all_cards:
+            if c.index == next_index:
+                return c
+        return None
 
+    def get_next_card(self):
+        next_index = self.current_card.index + 1
+        if next_index >= len(self.all_cards) - self.placeholders_num:
+            next_index = 0
+        for c in self.all_cards:
+            if c.index == next_index:
+                return c
+        return None
+    
     def prev_image(self):
         if self.current_image_number - 1 < 0:
-            return
+            to_load = self.get_previous_card()
+            self.load(to_load)
         else:
-            for p in self.drawn_images:
-                self.remove_widget(p)
             self.current_image_number = self.current_image_number - 1
             self.current_image_source = self.images[self.current_image_number]
 
     def next_image(self):
         if self.current_image_number + 1 > self.number_of_slides - 1:
-            return
+            to_load = self.get_next_card()
+            self.load(to_load)
         else:
-            for p in self.drawn_images:
-                self.remove_widget(p)
             self.current_image_number = self.current_image_number + 1
             self.current_image_source = self.images[self.current_image_number]
+
+
+class PrompterTopBar(BoxLayout):
+    pass
+
+
+class PrompterBottomBar(BoxLayout):
+    pass
 
 
 class TeleprompterWidget(FloatLayout):
 
     mode = StringProperty("loading")  # Expose to template
+    focused_card = ObjectProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -282,7 +314,6 @@ class TeleprompterWidget(FloatLayout):
                     "down",
                 ]:
                     self.prompt_next()
-                    self.ids["prompt_layout"].next_image()
 
                 if self._input_state[0] == "KEY_B" and self._input_state[1] in [
                     "hold",
@@ -317,7 +348,7 @@ class TeleprompterWidget(FloatLayout):
                 c.set_focus(False)
 
     def enter_prompt(self):
-        self.ids["prompt_layout"].load_images(self.focused_card.images)
+        self.ids["prompt_layout"].load(self.focused_card)
         self.set_mode("prompt")
 
     def prompt_prev(self):
@@ -458,6 +489,9 @@ class TeleprompterWidget(FloatLayout):
         # Focus first card
         self._card_instances[0].set_focus()
         self.focused_card = self._card_instances[0]
+        
+        self.ids["prompt_layout"].all_cards = self._card_instances
+        self.ids["prompt_layout"].placeholders_num = self._placeholders_num
 
 
 class TeleprompterApp(App):
