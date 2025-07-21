@@ -77,9 +77,6 @@ class SongCard(
         self.artist = artist
         self.song = song
 
-    def set_focus(self, focus=True):
-        self.focus = focus
-
 
 class BackButton(
     BoxLayout,
@@ -184,7 +181,7 @@ class TeleprompterWidget(FloatLayout):
         self._card_instances = None
         self._placeholders_num = 0
 
-        self.song_books = []
+        self.songbooks = []
         # Check for Foot Switch
         self._fs_device = self._find_foot_switch_device()
         threading.Thread(target=self._detect_foot_switch_events, daemon=True).start()
@@ -385,10 +382,10 @@ class TeleprompterWidget(FloatLayout):
             self.ids["back_button"].focus = True
         for c in self._card_instances:
             if c.index == next_index:
-                c.set_focus(True)
+                c.focus = True
                 self.focused_card = c
             else:
-                c.set_focus(False)
+                c.focus = False
 
     def focus_next_card(self):
 
@@ -403,16 +400,16 @@ class TeleprompterWidget(FloatLayout):
             self.ids["back_button"].focus = True
         for c in self._card_instances:
             if c.index == next_index:
-                c.set_focus(True)
+                c.focus = True
                 self.focused_card = c
             else:
-                c.set_focus(False)
+                c.focus = False
 
     def focus_previous_songbook(self):
         next_index = self.focused_songbook.index - 1
         if next_index < 0:
-            next_index = len(self.song_books) - 1
-        for sb in self.song_books:
+            next_index = len(self.songbooks) - 1
+        for sb in self.songbooks:
             if sb.index == next_index:
                 sb.focus = True
                 self.focused_songbook = sb
@@ -421,9 +418,9 @@ class TeleprompterWidget(FloatLayout):
 
     def focus_next_songbook(self):
         next_index = self.focused_songbook.index + 1
-        if next_index >= len(self.song_books):
+        if next_index >= len(self.songbooks):
             next_index = 0
-        for sb in self.song_books:
+        for sb in self.songbooks:
             if sb.index == next_index:
                 sb.focus = True
                 self.focused_songbook = sb
@@ -515,7 +512,7 @@ class TeleprompterWidget(FloatLayout):
         if os.path.exists(songbooks_folder) is False:
             raise Exception(f"Songbooks folder {songbooks_folder} does not exist.")
         
-        self.song_boooks = []
+        self.songbooks = []
         for sb_index, sb in enumerate(sorted(os.listdir(songbooks_folder))):
             sb_path = os.path.join(songbooks_folder, sb)
             if not os.path.isdir(sb_path):
@@ -541,7 +538,7 @@ class TeleprompterWidget(FloatLayout):
                         )
                     }
                     cards.append(card)
-            self.song_books.append(Songbook(
+            self.songbooks.append(Songbook(
                 sequence=sb.split("-")[0].strip(),
                 title=sb.split("-")[1].strip(),
                 cards=cards,
@@ -552,12 +549,12 @@ class TeleprompterWidget(FloatLayout):
     def initialize_home(self):
 
         # Create card widgets
-        for sb in self.song_books:
+        for sb in self.songbooks:
             self.ids["home_layout"].add_widget(sb)
 
         # Focus first
-        self.song_books[0].focus = True
-        self.focused_songbook = self.song_books[0]
+        self.songbooks[0].focus = True
+        self.focused_songbook = self.songbooks[0]
 
     def initialize_songbook(self, songbook):
         
@@ -598,7 +595,7 @@ class TeleprompterWidget(FloatLayout):
             self.ids["songbook_layout"].add_widget(c_instance)
 
         # Focus first card
-        self._card_instances[0].set_focus()
+        self._card_instances[0].focus = True
         self.focused_card = self._card_instances[0]
         
         self.ids["prompt_layout"].all_cards = self._card_instances
@@ -617,7 +614,7 @@ class TeleprompterApp(App):
     def build(self):
         main = TeleprompterWidget()
         main.load_songbooks()
-        main.current_songbook = main.song_books[0] if main.song_books else None
+        main.current_songbook = main.songbooks[0] if main.songbooks else None
         main.initialize_home()
         main.set_mode("home")
         return main
