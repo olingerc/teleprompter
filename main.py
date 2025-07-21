@@ -451,42 +451,42 @@ class TeleprompterWidget(FloatLayout):
     Load Song Books
     """
 
-    def _number_of_slides(self, path_to_presentation):
-        prs = Presentation(path_to_presentation)
-        return len(prs.slides)
-
-    def _presentation_to_images(self, ppt_path, num_slides, songbook_name):
+    def _presentation_to_images(self, path_to_presentation, songbook_name):
         IMAGE_FORMAT = "jpg"
         OUT_DIR = TEMP_FOLDER + "/" + songbook_name
         if not os.path.exists(OUT_DIR):
             os.makedirs(OUT_DIR)
 
         ### start = time.time()
-        message = "Converting {}.".format(os.path.basename(ppt_path))
+        message = "Converting {}.".format(os.path.basename(path_to_presentation))
         self.ids["loading_screen"].draw_text(message)
-        filename_bare = os.path.basename(ppt_path).replace(".pptx", "")
+        filename_bare = os.path.basename(path_to_presentation).replace(".pptx", "")
 
         # Give cache if images are present but only if ppt is not newer
         expected_image_paths = []
         cache_ok = True
-        for i in range(num_slides):
-            expected_image = os.path.join(
-                OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}"
-            )
-            expected_image_paths.append(expected_image)
-            if os.path.exists(expected_image) is False:
-                cache_ok = False
-            else:
-                if os.path.getmtime(expected_image) < os.path.getmtime(ppt_path):
+        try:
+            presentation = Presentation(path_to_presentation)
+            for i in range(len(presentation.slides)):
+                expected_image = os.path.join(
+                    OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}"
+                )
+                expected_image_paths.append(expected_image)
+                if os.path.exists(expected_image) is False:
                     cache_ok = False
-                    self.ids["loading_screen"].draw_text("cache obsolete")
+                else:
+                    if os.path.getmtime(expected_image) < os.path.getmtime(path_to_presentation):
+                        cache_ok = False
+        except Exception as e:
+            print("Error during presentation loading: {}".format(e))
+            cache_ok = False
+
         if cache_ok:
             self.ids["loading_screen"].draw_text("taking from cache")
             return expected_image_paths
 
         # convert pptx to PDF
-        self.ids["loading_screen"].draw_text("converted")
-        command_list = ["soffice", "--headless", "--convert-to", "pdf", ppt_path]
+        command_list = ["soffice", "--headless", "--convert-to", "pdf", path_to_presentation]
         subprocess.run(command_list)
 
         pdffile_name = filename_bare + ".pdf"
@@ -499,7 +499,10 @@ class TeleprompterWidget(FloatLayout):
             im_name = os.path.join(OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}")
             created_image_paths.append(im_name)
             img.save(im_name)
+
         os.unlink(pdffile_name)
+
+        self.ids["loading_screen"].draw_text("converted")
 
         return created_image_paths
 
@@ -522,20 +525,17 @@ class TeleprompterWidget(FloatLayout):
                     continue
                 if f.endswith("pptx"):
                     info = f.replace(".pptx", "")
-                    number_of_slides = self._number_of_slides(
-                        os.path.join(songbook_path, f)
-                    )
                     song = {
                         "sequence": info.split("-")[0].strip(),
                         "artist": info.split("-")[1].strip(),
                         "song": info.split("-")[2].strip(),
                         "images": self._presentation_to_images(
                             os.path.join(songbook_path, f),
-                            number_of_slides,
                             songbook_filename
                         )
                     }
                     songs.append(song)
+
             self.songbooks.append(Songbook(
                 sequence=songbook_filename.split("-")[0].strip(),
                 title=songbook_filename.split("-")[1].strip(),
