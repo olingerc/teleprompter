@@ -15,22 +15,32 @@
         orientation: 'vertical'
 
         opacity: 1 if main.mode == 'home' else 0
-
-    SongbookLayout:
-        id: songbook_layout
-        orientation: 'lr-tb'
-        cols: app.SONGBOOK_MIN_COLS_NUM
-        rows: app.SONGBOOK_MIN_ROWS_NUM
-        spacing: 10
-        padding: 10
-
+    
+    SongbookLayoutMain:
+        orientation: 'vertical'
         opacity: 1 if main.mode == 'songbook' else 0
+
+        BoxLayout:
+            size_hint: 1, 0.05
+            BackButton:
+                id: back_button
+
+
+        SongbookLayoutList:
+            id: songbook_layout
+            orientation: 'lr-tb'
+            cols: app.SONGBOOK_MIN_COLS_NUM
+            rows: app.SONGBOOK_MIN_ROWS_NUM
+            spacing: 10
+            padding: 10
+
+
     
     PromptLayout:
         id: prompt_layout
         opacity: 1 if main.mode == 'prompt' else 0
         orientation: 'vertical'
-        widht: self.parent.width
+        width: self.parent.width
 
         PrompterTopBar:
             size_hint: 1, None
@@ -62,6 +72,32 @@
                 size_hint: 1, None
                 font_size: self.height * 0.75
                 text: 'Next: ' + prompt_layout.next_card.artist + ' - ' + prompt_layout.next_card.song if prompt_layout.next_card else ""
+
+
+<BackButton>:
+    canvas:
+
+        # Draw border
+        Color:
+            rgb: (0.8, 0.8, 0.8) if self.focus else (0.2, 0.2, 0.2)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+        
+        # Draw content
+        Color:
+            rgba: (0.2, 0.2, 0.2, 1)
+        RoundedRectangle:
+            pos: self.x+5, self.y+5
+            size: self.width-10, self.height-10
+
+    Label:
+        text: "Back"
+
+        halign: 'center'
+        font_size: self.width /60
+        text_size: self.width, None
+        height: self.texture_size[1]
 
 
 <SongCard>:

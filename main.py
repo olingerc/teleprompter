@@ -81,6 +81,13 @@ class SongCard(
         self.focus = focus
 
 
+class BackButton(
+    BoxLayout,
+):
+    focus = ObjectProperty()
+
+
+
 class LoadingScreenLayout(BoxLayout):
     previous_text = ""
 
@@ -91,7 +98,10 @@ class LoadingScreenLayout(BoxLayout):
 class HomeLayout(BoxLayout):
     pass
 
-class SongbookLayout(GridLayout):
+class SongbookLayoutMain(BoxLayout):
+    pass
+
+class SongbookLayoutList(GridLayout):
     pass
 
 
@@ -363,9 +373,16 @@ class TeleprompterWidget(FloatLayout):
     """
 
     def focus_previous_card(self):
-        next_index = self.focused_card.index - 1
-        if next_index < 0:
+        
+        # Handle back button
+        if self.ids["back_button"].focus is True:
             next_index = len(self._card_instances) - 1 - self._placeholders_num
+            self.ids["back_button"].focus = False
+        else:
+            next_index = self.focused_card.index - 1    
+
+        if next_index < 0:
+            self.ids["back_button"].focus = True
         for c in self._card_instances:
             if c.index == next_index:
                 c.set_focus(True)
@@ -374,9 +391,16 @@ class TeleprompterWidget(FloatLayout):
                 c.set_focus(False)
 
     def focus_next_card(self):
-        next_index = self.focused_card.index + 1
-        if next_index >= len(self._card_instances) - self._placeholders_num:
+
+        # Handle back button
+        if self.ids["back_button"].focus is True:
             next_index = 0
+            self.ids["back_button"].focus = False
+        else:
+            next_index = self.focused_card.index + 1
+
+        if next_index >= len(self._card_instances) - self._placeholders_num:
+            self.ids["back_button"].focus = True
         for c in self._card_instances:
             if c.index == next_index:
                 c.set_focus(True)
@@ -407,6 +431,10 @@ class TeleprompterWidget(FloatLayout):
                 sb.focus = False
 
     def enter_prompt(self):
+        if self.ids["back_button"].focus is True:
+            self.set_mode("home")
+            return
+        
         self.ids["prompt_layout"].load(self.focused_card)
         self.set_mode("prompt")
 
@@ -417,6 +445,7 @@ class TeleprompterWidget(FloatLayout):
         self.ids["prompt_layout"].next_image()
 
     def songbook_open(self, songbook):
+        self.ids["back_button"].focus = False
         self.initialize_songbook(songbook)
         self.set_mode("songbook")
 
