@@ -1,4 +1,6 @@
 # TODO
 
-- What if more cards than current grid, scoll? ore make cards smaller
-- Exit songbook button above cards
+- In promter back button styill has bugs
+- What if more songs than current grid, scoll? or make songs smaller
+- What if more songbooks ?
+- Fix having a loading screen

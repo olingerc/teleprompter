@@ -18,39 +18,49 @@ from pptx import Presentation
 
 
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
-BLACK = [0, 0, 0, 1]
-WHITE = [1, 1, 1, 1]
-
 SONGBOOK_MIN_ROWS_NUM = 3
 SONGBOOK_MIN_COLS_NUM = 6
-
 SONGBOOKS_FOLDER = "songbooks"
 TEMP_FOLDER = "converted"
 
 
+class LoadingScreenLayout(BoxLayout):
+    previous_text = ""
+
+    def draw_text(self, text):
+        self.loading_screen_text = self.previous_text + "\n" + text
+        self.previous_text = self.previous_text + "\n" + text
+
+
+class HomeLayout(BoxLayout):
+    pass
+
+
 class Songbook(BoxLayout):
-    title = StringProperty()
-    sequence = StringProperty()
-    cards = ObjectProperty()
     focus = ObjectProperty()
     index = ObjectProperty()
+    sequence = StringProperty()
+    title = StringProperty()
+    songs = ObjectProperty()
 
-class SequenceLabel(Label):
+
+class SongbookLayoutMain(BoxLayout):
     pass
 
 
-class ArtistLabel(Label):
-    pass
-
-
-class SongLabel(Label):
-    pass
-
-
-class SongCard(
+class BackButton(
     BoxLayout,
 ):
+    focus = ObjectProperty()
 
+
+class SongList(GridLayout):
+    pass
+
+
+class Song(
+    BoxLayout,
+):
     focus = ObjectProperty()
     is_placeholder = BooleanProperty()
     sequence = ObjectProperty()
@@ -69,36 +79,23 @@ class SongCard(
     ):
         super().__init__(**kwargs)
         self.focus = False
-
         self.index = index
         self.is_placeholder = is_placeholder
         self.images = images
-        self.sequence = str(index + 1)
+        self.sequence = str(index + 1)  # I decided to do my own counting and not show the users sequence identifier
         self.artist = artist
         self.song = song
 
 
-class BackButton(
-    BoxLayout,
-):
-    focus = ObjectProperty()
-
-
-
-class LoadingScreenLayout(BoxLayout):
-    previous_text = ""
-
-    def draw_text(self, text):
-        self.ls_text = self.previous_text + "\n" + text
-        self.previous_text = self.previous_text + "\n" + text
-
-class HomeLayout(BoxLayout):
+class SequenceLabel(Label):
     pass
 
-class SongbookLayoutMain(BoxLayout):
+
+class ArtistLabel(Label):
     pass
 
-class SongbookLayoutList(GridLayout):
+
+class SongLabel(Label):
     pass
 
 
@@ -107,43 +104,43 @@ class PromptLayout(BoxLayout):
     current_image_source = ObjectProperty()
     number_of_slides = ObjectProperty()
     
-    current_card = ObjectProperty()
-    next_card = ObjectProperty()
+    current_song = ObjectProperty()
+    next_song = ObjectProperty()
     
-    all_cards = ObjectProperty()
+    all_songs = ObjectProperty()
     placeholders_num = ObjectProperty()
 
-    def load(self, current_card):
+    def load(self, current_song):
         
         # Prepare first draw
-        self.current_card = current_card
-        self.images = current_card.images
-        self.number_of_slides = len(current_card.images)
+        self.current_song = current_song
+        self.images = current_song.images
+        self.number_of_slides = len(current_song.images)
         self.current_image_number = 0
         self.current_image_source = self.images[0]
-        self.next_card = self.get_next_card()
+        self.next_song = self.get_next_song()
     
-    def get_previous_card(self):
-        next_index = self.current_card.index - 1
+    def get_previous_song(self):
+        next_index = self.current_song.index - 1
         if next_index < 0:
-            next_index = len(self.all_cards) - 1 - self.placeholders_num
-        for c in self.all_cards:
-            if c.index == next_index:
-                return c
+            next_index = len(self.all_songs) - 1 - self.placeholders_num
+        for song in self.all_songs:
+            if song.index == next_index:
+                return song
         return None
 
-    def get_next_card(self):
-        next_index = self.current_card.index + 1
-        if next_index >= len(self.all_cards) - self.placeholders_num:
+    def get_next_song(self):
+        next_index = self.current_song.index + 1
+        if next_index >= len(self.all_songs) - self.placeholders_num:
             next_index = 0
-        for c in self.all_cards:
-            if c.index == next_index:
-                return c
+        for song in self.all_songs:
+            if song.index == next_index:
+                return song
         return None
     
     def prev_image(self):
         if self.current_image_number - 1 < 0:
-            to_load = self.get_previous_card()
+            to_load = self.get_previous_song()
             self.load(to_load)
         else:
             self.current_image_number = self.current_image_number - 1
@@ -151,7 +148,7 @@ class PromptLayout(BoxLayout):
 
     def next_image(self):
         if self.current_image_number + 1 > self.number_of_slides - 1:
-            to_load = self.get_next_card()
+            to_load = self.get_next_song()
             self.load(to_load)
         else:
             self.current_image_number = self.current_image_number + 1
@@ -170,15 +167,14 @@ class TeleprompterWidget(FloatLayout):
 
     mode = StringProperty("loading")  # Expose to template
     current_songbook = ObjectProperty()
-
     focused_songbook = ObjectProperty()
-    focused_card = ObjectProperty()
+    focused_song = ObjectProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         self._input_state = None
-        self._card_instances = None
+        self._song_instances = None
         self._placeholders_num = 0
 
         self.songbooks = []
@@ -335,12 +331,12 @@ class TeleprompterWidget(FloatLayout):
                     "hold",
                     "down",
                 ]:
-                    self.focus_previous_card()
+                    self.focus_previous_song()
                 if self._input_state[0] == "KEY_C" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
-                    self.focus_next_card()
+                    self.focus_next_song()
 
                 if self._input_state[0] == "KEY_B" and self._input_state[1] in [
                     "hold",
@@ -369,70 +365,70 @@ class TeleprompterWidget(FloatLayout):
     Actions
     """
 
-    def focus_previous_card(self):
+    def focus_previous_song(self):
         
         # Handle back button
         if self.ids["back_button"].focus is True:
-            next_index = len(self._card_instances) - 1 - self._placeholders_num
+            next_index = len(self._song_instances) - 1 - self._placeholders_num
             self.ids["back_button"].focus = False
         else:
-            next_index = self.focused_card.index - 1    
+            next_index = self.focused_song.index - 1    
 
         if next_index < 0:
             self.ids["back_button"].focus = True
-        for c in self._card_instances:
-            if c.index == next_index:
-                c.focus = True
-                self.focused_card = c
+        for song in self._song_instances:
+            if song.index == next_index:
+                song.focus = True
+                self.focused_song = song
             else:
-                c.focus = False
+                song.focus = False
 
-    def focus_next_card(self):
+    def focus_next_song(self):
 
         # Handle back button
         if self.ids["back_button"].focus is True:
             next_index = 0
             self.ids["back_button"].focus = False
         else:
-            next_index = self.focused_card.index + 1
+            next_index = self.focused_song.index + 1
 
-        if next_index >= len(self._card_instances) - self._placeholders_num:
+        if next_index >= len(self._song_instances) - self._placeholders_num:
             self.ids["back_button"].focus = True
-        for c in self._card_instances:
-            if c.index == next_index:
-                c.focus = True
-                self.focused_card = c
+        for song in self._song_instances:
+            if song.index == next_index:
+                song.focus = True
+                self.focused_song = song
             else:
-                c.focus = False
+                song.focus = False
 
     def focus_previous_songbook(self):
         next_index = self.focused_songbook.index - 1
         if next_index < 0:
             next_index = len(self.songbooks) - 1
-        for sb in self.songbooks:
-            if sb.index == next_index:
-                sb.focus = True
-                self.focused_songbook = sb
+        for songbook in self.songbooks:
+            if songbook.index == next_index:
+                songbook.focus = True
+                self.focused_songbook = songbook
             else:
-                sb.focus = False
+                songbook.focus = False
 
     def focus_next_songbook(self):
         next_index = self.focused_songbook.index + 1
         if next_index >= len(self.songbooks):
             next_index = 0
-        for sb in self.songbooks:
-            if sb.index == next_index:
-                sb.focus = True
-                self.focused_songbook = sb
+        for songbook in self.songbooks:
+            if songbook.index == next_index:
+                songbook.focus = True
+                self.focused_songbook = songbook
             else:
-                sb.focus = False
+                songbook.focus = False
 
     def enter_prompt(self):
         if self.ids["back_button"].focus is True:
             self.set_mode("home")
             return
         
-        self.ids["prompt_layout"].load(self.focused_card)
+        self.ids["prompt_layout"].load(self.focused_song)
         self.set_mode("prompt")
 
     def prompt_prev(self):
@@ -465,7 +461,7 @@ class TeleprompterWidget(FloatLayout):
 
         ### start = time.time()
         message = "Converting {}.".format(os.path.basename(ppt_path))
-        self.ids["ls_screen"].draw_text(message)
+        self.ids["loading_screen"].draw_text(message)
         filename_bare = os.path.basename(ppt_path).replace(".pptx", "")
 
         # Give cache if images are present but only if ppt is not newer
@@ -481,13 +477,13 @@ class TeleprompterWidget(FloatLayout):
             else:
                 if os.path.getmtime(expected_image) < os.path.getmtime(ppt_path):
                     cache_ok = False
-                    self.ids["ls_screen"].draw_text("cache obsolete")
+                    self.ids["loading_screen"].draw_text("cache obsolete")
         if cache_ok:
-            self.ids["ls_screen"].draw_text("taking from cache")
+            self.ids["loading_screen"].draw_text("taking from cache")
             return expected_image_paths
 
         # convert pptx to PDF
-        self.ids["ls_screen"].draw_text("converted")
+        self.ids["loading_screen"].draw_text("converted")
         command_list = ["soffice", "--headless", "--convert-to", "pdf", ppt_path]
         subprocess.run(command_list)
 
@@ -513,44 +509,44 @@ class TeleprompterWidget(FloatLayout):
             raise Exception(f"Songbooks folder {songbooks_folder} does not exist.")
         
         self.songbooks = []
-        for sb_index, sb in enumerate(sorted(os.listdir(songbooks_folder))):
-            sb_path = os.path.join(songbooks_folder, sb)
-            if not os.path.isdir(sb_path):
+        for songbook_index, songbook_filename in enumerate(sorted(os.listdir(songbooks_folder))):
+            songbook_path = os.path.join(songbooks_folder, songbook_filename)
+            if not os.path.isdir(songbook_path):
                 continue
         
-            cards = []
-            for f in sorted(os.listdir(sb_path)):
+            songs = []
+            for f in sorted(os.listdir(songbook_path)):
                 if f.startswith("~"):
                     continue
                 if f.endswith("pptx"):
                     info = f.replace(".pptx", "")
                     number_of_slides = self._number_of_slides(
-                        os.path.join(sb_path, f)
+                        os.path.join(songbook_path, f)
                     )
-                    card = {
+                    song = {
                         "sequence": info.split("-")[0].strip(),
                         "artist": info.split("-")[1].strip(),
                         "song": info.split("-")[2].strip(),
                         "images": self._presentation_to_images(
-                            os.path.join(sb_path, f),
+                            os.path.join(songbook_path, f),
                             number_of_slides,
-                            sb
+                            songbook_filename
                         )
                     }
-                    cards.append(card)
+                    songs.append(song)
             self.songbooks.append(Songbook(
-                sequence=sb.split("-")[0].strip(),
-                title=sb.split("-")[1].strip(),
-                cards=cards,
-                index=sb_index,
+                sequence=songbook_filename.split("-")[0].strip(),
+                title=songbook_filename.split("-")[1].strip(),
+                songs=songs,
+                index=songbook_index,
                 focus=False
             ))
 
     def initialize_home(self):
 
-        # Create card widgets
-        for sb in self.songbooks:
-            self.ids["home_layout"].add_widget(sb)
+        # Create song widgets
+        for songbook in self.songbooks:
+            self.ids["home_layout"].add_widget(songbook)
 
         # Focus first
         self.songbooks[0].focus = True
@@ -559,15 +555,15 @@ class TeleprompterWidget(FloatLayout):
     def initialize_songbook(self, songbook):
         
         # Reset
-        self.ids["songbook_layout"].clear_widgets()
+        self.ids["song_list"].clear_widgets()
         self._placeholders_num = 0
-        self.ids["songbook_layout"].rows = SONGBOOK_MIN_ROWS_NUM
-        self.ids["songbook_layout"].cols = SONGBOOK_MIN_COLS_NUM
+        self.ids["song_list"].rows = SONGBOOK_MIN_ROWS_NUM
+        self.ids["song_list"].cols = SONGBOOK_MIN_COLS_NUM
         
-        # Create card widgets
-        self._card_instances = []
-        for index, c in enumerate(songbook.cards):
-            c_instance = SongCard(
+        # Create song widgets
+        self._song_instances = []
+        for index, c in enumerate(songbook.songs):
+            song_instance = Song(
                 sequence=c["sequence"],
                 artist=c["artist"],
                 song=c["song"],
@@ -575,37 +571,37 @@ class TeleprompterWidget(FloatLayout):
                 is_placeholder=c.get("is_placeholder", False),
                 index=index,
             )
-            self._card_instances.append(c_instance)
-            self.ids["songbook_layout"].add_widget(c_instance)
+            self._song_instances.append(song_instance)
+            self.ids["song_list"].add_widget(song_instance)
 
         # Do we need placeholders ?
-        if len(songbook.cards) < SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM:
-            to_add = SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM - len(songbook.cards)
+        if len(songbook.songs) < SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM:
+            to_add = SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM - len(songbook.songs)
             self._placeholders_num = to_add
             while to_add > 0:
-                placeholder_c_instance = (
-                    SongCard(
+                placeholder_song_instance = (
+                    Song(
                         is_placeholder=True,
                         sequence="",
                         artist="",
                         song="",
-                        index=len(songbook.cards) + to_add
+                        index=len(songbook.songs) + to_add
                     )
                 )
-                self._card_instances.append(placeholder_c_instance)
-                self.ids["songbook_layout"].add_widget(placeholder_c_instance)
+                self._song_instances.append(placeholder_song_instance)
+                self.ids["song_list"].add_widget(placeholder_song_instance)
                 to_add = to_add - 1
         else:
             # Need to increase grid space
-            rows_needed = len(songbook.cards) // SONGBOOK_MIN_COLS_NUM
-            self.ids["songbook_layout"].rows = rows_needed + 1
+            rows_needed = len(songbook.songs) // SONGBOOK_MIN_COLS_NUM
+            self.ids["song_list"].rows = rows_needed + 1
 
 
-        # Focus first card
-        self._card_instances[0].focus = True
-        self.focused_card = self._card_instances[0]
+        # Focus first song
+        self._song_instances[0].focus = True
+        self.focused_song = self._song_instances[0]
         
-        self.ids["prompt_layout"].all_cards = self._card_instances
+        self.ids["prompt_layout"].all_songs = self._song_instances
         self.ids["prompt_layout"].placeholders_num = self._placeholders_num
 
 

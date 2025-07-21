@@ -2,13 +2,12 @@
     id: main
 
     LoadingScreenLayout:
-        ls_text: 'Loading ...'
-        id: ls_screen
+        loading_screen_text: 'Loading ...'
+        id: loading_screen
         opacity: 1 if main.mode == 'loading' else 0
         Label:
-            id: ls-label
             font_size: 50
-            text: ls_screen.ls_text
+            text: loading_screen.loading_screen_text
     
     HomeLayout:
         id: home_layout
@@ -25,15 +24,13 @@
             BackButton:
                 id: back_button
 
-
-        SongbookLayoutList:
-            id: songbook_layout
+        SongList:
+            id: song_list
             orientation: 'lr-tb'
             spacing: 10
             padding: 10
 
 
-    
     PromptLayout:
         id: prompt_layout
         opacity: 1 if main.mode == 'prompt' else 0
@@ -49,7 +46,7 @@
                 font_size: self.height * 0.75
                 halign: 'left'
                 padding: self.height * 0.25
-                text: prompt_layout.current_card.artist + ' - ' + prompt_layout.current_card.song if prompt_layout.current_card else ""
+                text: prompt_layout.current_song.artist + ' - ' + prompt_layout.current_song.song if prompt_layout.current_song else ""
 
 
             Label:
@@ -58,7 +55,7 @@
                 font_size: self.height * 0.75
                 halign: 'right'
                 padding: self.height * 0.25
-                text: 'Page ' + str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides) + ' Song ' + str(prompt_layout.current_card.index + 1) + '/' + str(len(prompt_layout.all_cards) - prompt_layout.placeholders_num) if prompt_layout.current_card else ""
+                text: 'Page ' + str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides) + ' Song ' + str(prompt_layout.current_song.index + 1) + '/' + str(len(prompt_layout.all_songs) - prompt_layout.placeholders_num) if prompt_layout.current_song else ""
 
         Image:
             id: current_image
@@ -69,7 +66,7 @@
             Label:
                 size_hint: 1, None
                 font_size: self.height * 0.75
-                text: 'Next: ' + prompt_layout.next_card.artist + ' - ' + prompt_layout.next_card.song if prompt_layout.next_card else ""
+                text: 'Next: ' + prompt_layout.next_song.artist + ' - ' + prompt_layout.next_song.song if prompt_layout.next_song else ""
 
 
 <BackButton>:
@@ -98,11 +95,11 @@
         height: self.texture_size[1]
 
 
-<SongCard>:
+<Song>:
     opacity: 0 if self.is_placeholder is True else 1
     padding: 10
     orientation: 'vertical'
-    id: song_card
+    id: song
 
     canvas:
 
@@ -121,23 +118,25 @@
             size: self.width-10, self.height-10
 
     SequenceLabel:
-        text: song_card.sequence or ""
+        text: song.sequence or ""
 
         halign: 'center'
         size_hint: 1, 0.2
         font_size: self.width/20
         text_size: self.width, None
         height: self.texture_size[1]
+    
     ArtistLabel:
-        text: song_card.artist or ""
+        text: song.artist or ""
         
         halign: 'center'
         size_hint: 1, 0.4
         font_size: self.width/10
         text_size: self.width, None
         height: self.texture_size[1]
+    
     SongLabel:
-        text: song_card.song or ""
+        text: song.song or ""
         
         halign: 'center'
         size_hint: 1, 0.4
@@ -147,10 +146,9 @@
 
 
 <Songbook>:
-    #opacity: 0 if self.is_placeholder is True else 1
+    id: songbook
     padding: 10
     orientation: 'vertical'
-    id: songbook
 
     canvas:
 
@@ -176,6 +174,7 @@
         font_size: self.width/20
         text_size: self.width, None
         height: self.texture_size[1]
+
     Label:
         text: songbook.title or ""
         

@@ -1,18 +1,20 @@
-# Teleprompter Appp
+# Teleprompter App
+
+To be used with a 3 switch footswitch or alternatively the 1, 2, 3 buttons on a keyboard or numpad.
+Create folder called `songbooks`. Each folder inside that will be a songbook. Folder name needs to be `<sequence> - <name>`. Inisde of these folders put powerpoint presentations. The slides will be converted into images and shown in the prompter. Naming of the powerpoint files should be `<sequence> - <artist> - <song>.pptx`. Converted files will be reused except if the powerpoint modification date is newer.
+Use left, right or 1, 3 to navigate. Middle and 2 are to enter a songbook or song and if inside a song it will go back to the songbook.
 
 ## Requirements
 
 `pip install kivy evdev python-pptx pdf2image`
-
 
 ## Prepare system:
 
 input reading needs sudo access or
 `sudo usermod -aG input $USER`
 
-## For WSL2
+## Linux package requirements
 - `sudo apt install libmtdev-dev libreoffice poppler-utils`
-
 
 ## Inestigating my Foot Switch
 
