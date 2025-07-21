@@ -142,6 +142,8 @@ class PromptLayout(BoxLayout):
         if self.current_image_number - 1 < 0:
             to_load = self.get_previous_song()
             self.load(to_load)
+            self.current_image_number = self.number_of_slides - 1
+            self.current_image_source = self.images[self.current_image_number]
         else:
             self.current_image_number = self.current_image_number - 1
             self.current_image_source = self.images[self.current_image_number]
