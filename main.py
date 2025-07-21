@@ -1,17 +1,16 @@
+import os
 import subprocess
 import threading
-import os
-from timeit import main
 
 from evdev import InputDevice, list_devices, categorize
 
 from kivy.app import App
-from kivy.uix.label import Label
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty, StringProperty, BooleanProperty
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
 
 from pdf2image import convert_from_bytes
 from pptx import Presentation
