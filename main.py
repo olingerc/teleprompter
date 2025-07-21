@@ -558,28 +558,12 @@ class TeleprompterWidget(FloatLayout):
 
     def initialize_songbook(self, songbook):
         
+        # Reset
         self.ids["songbook_layout"].clear_widgets()
-
-        # Do we need placeholders ?
-        if len(songbook.cards) < SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM:
-            to_add = SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM - len(songbook.cards)
-            self._placeholders_num = to_add
-            while to_add > 0:
-                songbook.cards.append(
-                    {
-                        "is_placeholder": True,
-                        "sequence": None,
-                        "artist": None,
-                        "song": None,
-                    }
-                )
-                to_add = to_add - 1
-        else:
-            # Need to increase grid space
-            rows_needed = len(songbook.cards) // SONGBOOK_MIN_COLS_NUM
-            self.ids["songbook_layout"].rows = rows_needed + 1
-
-
+        self._placeholders_num = 0
+        self.ids["songbook_layout"].rows = SONGBOOK_MIN_ROWS_NUM
+        self.ids["songbook_layout"].cols = SONGBOOK_MIN_COLS_NUM
+        
         # Create card widgets
         self._card_instances = []
         for index, c in enumerate(songbook.cards):
@@ -594,6 +578,29 @@ class TeleprompterWidget(FloatLayout):
             self._card_instances.append(c_instance)
             self.ids["songbook_layout"].add_widget(c_instance)
 
+        # Do we need placeholders ?
+        if len(songbook.cards) < SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM:
+            to_add = SONGBOOK_MIN_COLS_NUM * SONGBOOK_MIN_ROWS_NUM - len(songbook.cards)
+            self._placeholders_num = to_add
+            while to_add > 0:
+                placeholder_c_instance = (
+                    SongCard(
+                        is_placeholder=True,
+                        sequence="",
+                        artist="",
+                        song="",
+                        index=len(songbook.cards) + to_add
+                    )
+                )
+                self._card_instances.append(placeholder_c_instance)
+                self.ids["songbook_layout"].add_widget(placeholder_c_instance)
+                to_add = to_add - 1
+        else:
+            # Need to increase grid space
+            rows_needed = len(songbook.cards) // SONGBOOK_MIN_COLS_NUM
+            self.ids["songbook_layout"].rows = rows_needed + 1
+
+
         # Focus first card
         self._card_instances[0].focus = True
         self.focused_card = self._card_instances[0]
@@ -603,10 +610,6 @@ class TeleprompterWidget(FloatLayout):
 
 
 class TeleprompterApp(App):
-
-    # Expose constants to kivy
-    SONGBOOK_MIN_ROWS_NUM = SONGBOOK_MIN_ROWS_NUM
-    SONGBOOK_MIN_COLS_NUM = SONGBOOK_MIN_COLS_NUM
 
     Window.fullscreen = True
     Window.allow_screensaver = False
