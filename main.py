@@ -17,8 +17,11 @@ from kivy.clock import Clock
 from pdf2image import convert_from_bytes
 from pptx import Presentation
 
-DEBUG = False
+DEBUG = True
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
+FOOT_SWITCH_DEVICE_A_KEY = "KEY_A"
+FOOT_SWITCH_DEVICE_B_KEY = "KEY_B"
+FOOT_SWITCH_DEVICE_C_KEY = "KEY_C"
 SONGBOOK_MIN_ROWS_NUM = 3
 SONGBOOK_MIN_COLS_NUM = 6
 SONGBOOKS_FOLDER = "songbooks"
@@ -216,12 +219,13 @@ class TeleprompterWidget(FloatLayout):
 
         for device in devices:
             if device.name.endswith(FOOT_SWITCH_DEVICE_NAME_SUFFIX):
-                print(f"Found {FOOT_SWITCH_DEVICE_NAME_SUFFIX} at {device.path}")
+                message = f"Found {FOOT_SWITCH_DEVICE_NAME_SUFFIX} at {device.path}"
+                self.update_loading_screen(message)
                 fs_device = device
                 break
         if fs_device is None:
-            print(f"Did not find {FOOT_SWITCH_DEVICE_NAME_SUFFIX}")
-            print("Will try working with keyboard")
+            self.update_loading_screen(f"Did not find footswitch device called '{FOOT_SWITCH_DEVICE_NAME_SUFFIX}'")
+            self.update_loading_screen("Use keyboard instead")
             if len(devices) > 0:
                 print("Found:")
                 for device in devices:
@@ -235,11 +239,11 @@ class TeleprompterWidget(FloatLayout):
                     btn = None
                     state = None
                     as_string = str(categorize(ev))
-                    if "KEY_A" in as_string:
+                    if FOOT_SWITCH_DEVICE_A_KEY in as_string:
                         btn = "KEY_A"
-                    elif "KEY_B" in as_string:
+                    elif FOOT_SWITCH_DEVICE_B_KEY in as_string:
                         btn = "KEY_B"
-                    elif "KEY_C" in as_string:
+                    elif FOOT_SWITCH_DEVICE_C_KEY in as_string:
                         btn = "KEY_C"
 
                     if "up" in as_string:
@@ -652,7 +656,7 @@ class TeleprompterWidget(FloatLayout):
         
         # Use Clock otherwise we will not be in the Kivy thread at that point since
         # the whole load_and_draw method is in a separate thread
-        self.update_loading_screen("Loading songbooks ...")
+        self.update_loading_screen("\nLoading songbooks ...")
         songbook_dicts = self.load_songbooks()
         Clock.schedule_once(lambda dt: _draw(songbook_dicts))
 
