@@ -674,7 +674,7 @@ class TeleprompterApp(App):
         if os.path.exists(TEMP_FOLDER):
             shutil.rmtree(TEMP_FOLDER)
     else:
-        #Window.fullscreen = True
+        Window.fullscreen = True
         Window.allow_screensaver = False
 
     def build(self):
