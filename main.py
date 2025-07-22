@@ -17,7 +17,7 @@ from kivy.clock import Clock
 from pdf2image import convert_from_bytes
 from pptx import Presentation
 
-DEBUG = True
+DEBUG = False
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
 FOOT_SWITCH_DEVICE_A_KEY = "KEY_A"
 FOOT_SWITCH_DEVICE_B_KEY = "KEY_B"
@@ -26,6 +26,10 @@ SONGBOOK_MIN_ROWS_NUM = 3
 SONGBOOK_MIN_COLS_NUM = 6
 SONGBOOKS_FOLDER = "songbooks"
 TEMP_FOLDER = "converted"
+
+# SIZES
+TOP_BAR_TO_IMAGE_RATIO = 0.04
+BOTTOM_BAR_TO_IMAGE_RATIO = 0.04
 
 
 class LoadingScreenLayout(BoxLayout):
@@ -662,12 +666,15 @@ class TeleprompterWidget(FloatLayout):
 
 
 class TeleprompterApp(App):
+    
+    TOP_BAR_TO_IMAGE_RATIO = TOP_BAR_TO_IMAGE_RATIO
+    BOTTOM_BAR_TO_IMAGE_RATIO = BOTTOM_BAR_TO_IMAGE_RATIO
+    
     if DEBUG:
         if os.path.exists(TEMP_FOLDER):
             shutil.rmtree(TEMP_FOLDER)
     else:
-        Window.fullscreen = True
-        Window.fullscreen = True
+        #Window.fullscreen = True
         Window.allow_screensaver = False
 
     def build(self):

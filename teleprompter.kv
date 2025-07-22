@@ -38,34 +38,41 @@
         width: self.parent.width
 
         PrompterTopBar:
-            size_hint: 1, None
-
+            size_hint: 1, app.TOP_BAR_TO_IMAGE_RATIO
             Label:
                 size_hint: 1, None
+                font_size: self.width * app.TOP_BAR_TO_IMAGE_RATIO
                 text_size: self.width, None
-                font_size: self.height * 0.75
+                height: self.texture_size[1]
+                shorten: True
+
                 halign: 'left'
-                padding: self.height * 0.25
-                text: prompt_layout.current_song.artist + ' - ' + prompt_layout.current_song.song if prompt_layout.current_song else ""
-
+                text: "  " + prompt_layout.current_song.artist + ' - ' + prompt_layout.current_song.song if prompt_layout.current_song else ""
 
             Label:
                 size_hint: 1, None
+                font_size: self.width * app.TOP_BAR_TO_IMAGE_RATIO
                 text_size: self.width, None
-                font_size: self.height * 0.75
+                height: self.texture_size[1]
+                shorten: True
+                
                 halign: 'right'
-                padding: self.height * 0.25
-                text: 'Page ' + str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides) + ' Song ' + str(prompt_layout.current_song.index + 1) + '/' + str(len(prompt_layout.all_songs) - prompt_layout.placeholders_num) if prompt_layout.current_song else ""
+                text: 'Page ' + str(prompt_layout.current_image_number + 1) + '/' + str(prompt_layout.number_of_slides) + ' Song ' + str(prompt_layout.current_song.index + 1) + '/' + str(len(prompt_layout.all_songs) - prompt_layout.placeholders_num) + "  " if prompt_layout.current_song else ""
 
         Image:
             id: current_image
             source: prompt_layout.current_image_source
 
         PrompterBottomBar:
-            size_hint: 1, None
+            size_hint: 1, app.BOTTOM_BAR_TO_IMAGE_RATIO
+
             Label:
                 size_hint: 1, None
-                font_size: self.height * 0.75
+                font_size: self.width * app.BOTTOM_BAR_TO_IMAGE_RATIO / 2
+                text_size: self.width, None
+                height: self.texture_size[1]
+
+                halign: 'center'
                 text: 'Next: ' + prompt_layout.next_song.artist + ' - ' + prompt_layout.next_song.song if prompt_layout.next_song else ""
 
 
@@ -183,3 +190,4 @@
         font_size: self.width/10
         text_size: self.width, None
         height: self.texture_size[1]
+        shorten: True
