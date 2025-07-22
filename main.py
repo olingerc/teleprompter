@@ -244,11 +244,11 @@ class TeleprompterWidget(FloatLayout):
                     state = None
                     as_string = str(categorize(ev))
                     if FOOT_SWITCH_DEVICE_A_KEY in as_string:
-                        btn = "KEY_A"
+                        btn = "A"
                     elif FOOT_SWITCH_DEVICE_B_KEY in as_string:
-                        btn = "KEY_B"
+                        btn = "B"
                     elif FOOT_SWITCH_DEVICE_C_KEY in as_string:
-                        btn = "KEY_C"
+                        btn = "C"
 
                     if "up" in as_string:
                         state = "up"
@@ -272,19 +272,19 @@ class TeleprompterWidget(FloatLayout):
         btn = None
         state = None
         if key == "1" or key == "numpad1":
-            btn = "KEY_A"
+            btn = "A"
             if self._previous_keyboard_state == "down" + btn:
                 state = "hold"
             else:
                 state = "down"
         if key == "2" or key == "numpad2":
-            btn = "KEY_B"
+            btn = "B"
             if self._previous_keyboard_state == "down" + btn:
                 state = "hold"
             else:
                 state = "down"
         if key == "3" or key == "numpad3":
-            btn = "KEY_C"
+            btn = "C"
             if self._previous_keyboard_state == "down" + btn:
                 state = "hold"
             else:
@@ -318,13 +318,13 @@ class TeleprompterWidget(FloatLayout):
         btn = None
         state = None
         if key == "1" or key == "numapd1":
-            btn = "KEY_A"
+            btn = "A"
             state = "up"
         if key == "2" or key == "numapd2":
-            btn = "KEY_B"
+            btn = "V"
             state = "up"
         if key == "3" or key == "numapd3":
-            btn = "KEY_C"
+            btn = "C"
             state = "up"
         if btn and state:
             self._input_state = (btn, state)
@@ -334,52 +334,52 @@ class TeleprompterWidget(FloatLayout):
     def _decide_action(self):
         if self._input_state:
             if self.mode == "home":
-                if self._input_state[0] == "KEY_A" and self._input_state[1] in [
+                if self._input_state[0] == "A" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.focus_previous_songbook()
-                if self._input_state[0] == "KEY_C" and self._input_state[1] in [
+                if self._input_state[0] == "C" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.focus_next_songbook()
 
-                if self._input_state[0] == "KEY_B" and self._input_state[1] in [
+                if self._input_state[0] == "B" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.songbook_open(self.focused_songbook)
             elif self.mode == "songbook":
-                if self._input_state[0] == "KEY_A" and self._input_state[1] in [
+                if self._input_state[0] == "A" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.focus_previous_song()
-                if self._input_state[0] == "KEY_C" and self._input_state[1] in [
+                if self._input_state[0] == "C" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.focus_next_song()
 
-                if self._input_state[0] == "KEY_B" and self._input_state[1] in [
+                if self._input_state[0] == "B" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.enter_prompt()
             else:
-                if self._input_state[0] == "KEY_A" and self._input_state[1] in [
+                if self._input_state[0] == "A" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.prompt_prev()
-                if self._input_state[0] == "KEY_C" and self._input_state[1] in [
+                if self._input_state[0] == "C" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
                     self.prompt_next()
 
-                if self._input_state[0] == "KEY_B" and self._input_state[1] in [
+                if self._input_state[0] == "BS" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
