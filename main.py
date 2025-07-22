@@ -12,7 +12,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.clock import Clock
+from kivy.clock import Clock, mainthread
 
 from pdf2image import convert_from_bytes
 from pptx import Presentation
@@ -606,11 +606,18 @@ class TeleprompterWidget(FloatLayout):
         
         self.ids["prompt_layout"].all_songs = self._song_instances
         self.ids["prompt_layout"].placeholders_num = self._placeholders_num
+    
+    @mainthread
+    def init(self):
+        self.load_songbooks()
+        self.current_songbook = self.songbooks[0] if self.songbooks else None
+        self.initialize_home()
+        self.set_mode("home")
 
 
 class TeleprompterApp(App):
 
-    Window.fullscreen = True
+    #Window.fullscreen = True
     Window.allow_screensaver = False
 
     def build(self):
@@ -619,10 +626,8 @@ class TeleprompterApp(App):
             shutil.rmtree(TEMP_FOLDER)
         
         main = TeleprompterWidget()
-        main.load_songbooks()
-        main.current_songbook = main.songbooks[0] if main.songbooks else None
-        main.initialize_home()
-        main.set_mode("home")
+        Clock.schedule_once(lambda dt: main.init(), 0)
+        
         return main
 
 
