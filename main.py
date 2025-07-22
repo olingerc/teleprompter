@@ -1,8 +1,7 @@
 import os
 import subprocess
-import threading
+from threading import Thread
 import shutil
-import time
 
 from evdev import InputDevice, list_devices, categorize
 
@@ -13,7 +12,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
 
 from pdf2image import convert_from_bytes
 from pptx import Presentation
@@ -182,9 +181,9 @@ class TeleprompterWidget(FloatLayout):
         self._placeholders_num = 0
 
         self.songbooks = []
-        # Check for Foot Switch
+        # Check for Foot Switch and connect
         self._fs_device = self._find_foot_switch_device()
-        threading.Thread(target=self._detect_foot_switch_events, daemon=True).start()
+        Thread(target=self._detect_foot_switch_events, daemon=True).start()
 
         # Connect Keyboard
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
@@ -526,8 +525,7 @@ class TeleprompterWidget(FloatLayout):
                 if f.startswith("~"):
                     continue
                 if f.endswith("pptx"):
-                    self.message = f
-                    self.update()
+                    self.update_loading_screen(f)
                     info = f.replace(".pptx", "")
                     song = {
                         "sequence": info.split("-")[0].strip(),
@@ -548,9 +546,8 @@ class TeleprompterWidget(FloatLayout):
             })
         return songbooks
     
-    def update(self):
-        self.ids["loading_screen"].loading_screen_text = self.message
-
+    def update_loading_screen(self, message):
+        self.ids["loading_screen"].draw_text(message)
 
     def initialize_home(self):
 
@@ -615,7 +612,7 @@ class TeleprompterWidget(FloatLayout):
         self.ids["prompt_layout"].placeholders_num = self._placeholders_num
     
     def init(self):
-        t = threading.Thread(target=self.load).start()
+        Thread(target=self.load).start()
 
     def load(self):
         songbook_dicts = self.load_songbooks()
@@ -650,8 +647,6 @@ class TeleprompterApp(App):
             shutil.rmtree(TEMP_FOLDER)
         
         main = TeleprompterWidget()
-        main.message = "LOADING ...1"
-        Clock.schedule_interval(lambda dt: main.update(), 0.5)
         Clock.schedule_once(lambda dt: main.init(), 0)
         
         return main
