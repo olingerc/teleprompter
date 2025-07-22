@@ -1,6 +1,7 @@
 import os
 import subprocess
 import threading
+import shutil
 
 from evdev import InputDevice, list_devices, categorize
 
@@ -11,6 +12,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.clock import Clock
 
 from pdf2image import convert_from_bytes
 from pptx import Presentation
@@ -612,6 +614,10 @@ class TeleprompterApp(App):
     Window.allow_screensaver = False
 
     def build(self):
+        
+        if os.path.exists(TEMP_FOLDER):
+            shutil.rmtree(TEMP_FOLDER)
+        
         main = TeleprompterWidget()
         main.load_songbooks()
         main.current_songbook = main.songbooks[0] if main.songbooks else None
