@@ -17,7 +17,7 @@ from kivy.clock import Clock
 from pdf2image import convert_from_bytes
 from pptx import Presentation
 
-
+DEBUG = False
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
 SONGBOOK_MIN_ROWS_NUM = 3
 SONGBOOK_MIN_COLS_NUM = 6
@@ -28,9 +28,19 @@ TEMP_FOLDER = "converted"
 class LoadingScreenLayout(BoxLayout):
     previous_text = ""
 
-    def draw_text(self, text):
-        self.loading_screen_text = self.previous_text + "\n" + text
-        self.previous_text = self.previous_text + "\n" + text
+    def draw_text(self, text, append=False):
+        
+        if append:
+            all = self.previous_text.split("\n")
+            if len(all) > 0:
+                all[-1] = all[-1] + text
+            else:
+                all.append(text)
+            self.loading_screen_text = "\n".join(all)
+            self.previous_text = "\n".join(all)
+        else:
+            self.loading_screen_text = self.previous_text + "\n" + text
+            self.previous_text = self.previous_text + "\n" + text
 
 
 class HomeLayout(BoxLayout):
@@ -180,7 +190,6 @@ class TeleprompterWidget(FloatLayout):
         self._song_instances = None
         self._placeholders_num = 0
 
-        self.songbooks = []
         # Check for Foot Switch and connect
         self._fs_device = self._find_foot_switch_device()
         Thread(target=self._detect_foot_switch_events, daemon=True).start()
@@ -192,6 +201,10 @@ class TeleprompterWidget(FloatLayout):
             on_key_up=self._on_keyboard_up,
         )
         self._previous_keyboard_state = None
+        
+        # Create a thread to load songbooks and draw its contents
+        self.songbooks = []
+        Thread(target=self.load_and_draw).start()
 
     """
     Setup UI
@@ -458,9 +471,6 @@ class TeleprompterWidget(FloatLayout):
         if not os.path.exists(OUT_DIR):
             os.makedirs(OUT_DIR)
 
-        ### start = time.time()
-        message = "Converting {}.".format(os.path.basename(path_to_presentation))
-        ### self.ids["loading_screen"].draw_text(message)
         filename_bare = os.path.basename(path_to_presentation).replace(".pptx", "")
 
         # Give cache if images are present but only if ppt is not newer
@@ -483,7 +493,7 @@ class TeleprompterWidget(FloatLayout):
             cache_ok = False
 
         if cache_ok:
-            ### self.ids["loading_screen"].draw_text("taking from cache")
+            self.update_loading_screen(" (cache)", append=True)
             return expected_image_paths
 
         # convert pptx to PDF
@@ -503,7 +513,7 @@ class TeleprompterWidget(FloatLayout):
 
         os.unlink(pdffile_name)
 
-        ### self.ids["loading_screen"].draw_text("converted")
+        self.update_loading_screen(" (converted)", append=True)
 
         return created_image_paths
     
@@ -515,39 +525,53 @@ class TeleprompterWidget(FloatLayout):
             raise Exception(f"Songbooks folder {songbooks_folder} does not exist.")
         
         songbooks = []
-        for songbook_index, songbook_filename in enumerate(sorted(os.listdir(songbooks_folder))):
-            songbook_path = os.path.join(songbooks_folder, songbook_filename)
+        for songbook_index, songbook_folder in enumerate(sorted(os.listdir(songbooks_folder))):
+            
+            songbook_sequence = songbook_folder.split("-")[0].strip()
+            songbook_title = songbook_folder.split("-")[1].strip()
+            
+            self.update_loading_screen("")
+            self.update_loading_screen("SONGBOOK: " + songbook_title)
+            songbook_path = os.path.join(songbooks_folder, songbook_folder)
+            
+            # Only look at directories
             if not os.path.isdir(songbook_path):
                 continue
-        
+
+            # Collect songs for this songbook
             songs = []
             for f in sorted(os.listdir(songbook_path)):
                 if f.startswith("~"):
                     continue
                 if f.endswith("pptx"):
-                    self.update_loading_screen(f)
                     info = f.replace(".pptx", "")
+                    sequence = info.split("-")[0].strip()
+                    artist = info.split("-")[1].strip()
+                    song = info.split("-")[2].strip()
+                    
+                    self.update_loading_screen(f"{artist} - {song}")
                     song = {
-                        "sequence": info.split("-")[0].strip(),
-                        "artist": info.split("-")[1].strip(),
-                        "song": info.split("-")[2].strip(),
+                        "sequence": sequence,
+                        "artist": artist,
+                        "song": song,
                         "images": self._presentation_to_images(
                             os.path.join(songbook_path, f),
-                            songbook_filename
+                            songbook_folder
                         )
                     }
                     songs.append(song)
 
+            # Collect songbooks
             songbooks.append({
-                "sequence": songbook_filename.split("-")[0].strip(),
-                "title": songbook_filename.split("-")[1].strip(),
+                "sequence": songbook_sequence,
+                "title": songbook_title,
                 "songs": songs,
                 "index": songbook_index
             })
         return songbooks
     
-    def update_loading_screen(self, message):
-        self.ids["loading_screen"].draw_text(message)
+    def update_loading_screen(self, message, append=False):
+        self.ids["loading_screen"].draw_text(message, append=append)
 
     def initialize_home(self):
 
@@ -611,15 +635,10 @@ class TeleprompterWidget(FloatLayout):
         self.ids["prompt_layout"].all_songs = self._song_instances
         self.ids["prompt_layout"].placeholders_num = self._placeholders_num
     
-    def init(self):
-        Thread(target=self.load).start()
+    def load_and_draw(self):
 
-    def load(self):
-        songbook_dicts = self.load_songbooks()
-        
-        def draw(songbooks):
-            self.songbooks = []
-            for songbook_dict in songbooks:
+        def _draw(_songbooks):
+            for songbook_dict in _songbooks:
                 self.songbooks.append(Songbook(
                     sequence=songbook_dict["sequence"],
                     title=songbook_dict["title"],
@@ -632,23 +651,23 @@ class TeleprompterWidget(FloatLayout):
             self.set_mode("home")
         
         # Use Clock otherwise we will not be in the Kivy thread at that point since
-        # the whole load method is in a separate thread
-        Clock.schedule_once(lambda dt: draw(songbook_dicts))
+        # the whole load_and_draw method is in a separate thread
+        self.update_loading_screen("Loading songbooks ...")
+        songbook_dicts = self.load_songbooks()
+        Clock.schedule_once(lambda dt: _draw(songbook_dicts))
 
 
 class TeleprompterApp(App):
-
-    #Window.fullscreen = True
-    Window.allow_screensaver = False
-
-    def build(self):
-        
+    if DEBUG:
         if os.path.exists(TEMP_FOLDER):
             shutil.rmtree(TEMP_FOLDER)
-        
+    else:
+        Window.fullscreen = True
+        Window.fullscreen = True
+        Window.allow_screensaver = False
+
+    def build(self):
         main = TeleprompterWidget()
-        Clock.schedule_once(lambda dt: main.init(), 0)
-        
         return main
 
 
