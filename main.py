@@ -2,6 +2,7 @@ import os
 import subprocess
 import threading
 import shutil
+import time
 
 from evdev import InputDevice, list_devices, categorize
 
@@ -460,7 +461,7 @@ class TeleprompterWidget(FloatLayout):
 
         ### start = time.time()
         message = "Converting {}.".format(os.path.basename(path_to_presentation))
-        self.ids["loading_screen"].draw_text(message)
+        ### self.ids["loading_screen"].draw_text(message)
         filename_bare = os.path.basename(path_to_presentation).replace(".pptx", "")
 
         # Give cache if images are present but only if ppt is not newer
@@ -483,7 +484,7 @@ class TeleprompterWidget(FloatLayout):
             cache_ok = False
 
         if cache_ok:
-            self.ids["loading_screen"].draw_text("taking from cache")
+            ### self.ids["loading_screen"].draw_text("taking from cache")
             return expected_image_paths
 
         # convert pptx to PDF
@@ -503,10 +504,10 @@ class TeleprompterWidget(FloatLayout):
 
         os.unlink(pdffile_name)
 
-        self.ids["loading_screen"].draw_text("converted")
+        ### self.ids["loading_screen"].draw_text("converted")
 
         return created_image_paths
-
+    
     def load_songbooks(self):
         songbooks_folder = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), SONGBOOKS_FOLDER
@@ -514,7 +515,7 @@ class TeleprompterWidget(FloatLayout):
         if os.path.exists(songbooks_folder) is False:
             raise Exception(f"Songbooks folder {songbooks_folder} does not exist.")
         
-        self.songbooks = []
+        songbooks = []
         for songbook_index, songbook_filename in enumerate(sorted(os.listdir(songbooks_folder))):
             songbook_path = os.path.join(songbooks_folder, songbook_filename)
             if not os.path.isdir(songbook_path):
@@ -525,6 +526,8 @@ class TeleprompterWidget(FloatLayout):
                 if f.startswith("~"):
                     continue
                 if f.endswith("pptx"):
+                    self.message = f
+                    self.update()
                     info = f.replace(".pptx", "")
                     song = {
                         "sequence": info.split("-")[0].strip(),
@@ -537,13 +540,17 @@ class TeleprompterWidget(FloatLayout):
                     }
                     songs.append(song)
 
-            self.songbooks.append(Songbook(
-                sequence=songbook_filename.split("-")[0].strip(),
-                title=songbook_filename.split("-")[1].strip(),
-                songs=songs,
-                index=songbook_index,
-                focus=False
-            ))
+            songbooks.append({
+                "sequence": songbook_filename.split("-")[0].strip(),
+                "title": songbook_filename.split("-")[1].strip(),
+                "songs": songs,
+                "index": songbook_index
+            })
+        return songbooks
+    
+    def update(self):
+        self.ids["loading_screen"].loading_screen_text = self.message
+
 
     def initialize_home(self):
 
@@ -607,12 +614,29 @@ class TeleprompterWidget(FloatLayout):
         self.ids["prompt_layout"].all_songs = self._song_instances
         self.ids["prompt_layout"].placeholders_num = self._placeholders_num
     
-    @mainthread
     def init(self):
-        self.load_songbooks()
-        self.current_songbook = self.songbooks[0] if self.songbooks else None
-        self.initialize_home()
-        self.set_mode("home")
+        t = threading.Thread(target=self.load).start()
+
+    def load(self):
+        songbook_dicts = self.load_songbooks()
+        
+        def draw(songbooks):
+            self.songbooks = []
+            for songbook_dict in songbooks:
+                self.songbooks.append(Songbook(
+                    sequence=songbook_dict["sequence"],
+                    title=songbook_dict["title"],
+                    songs=songbook_dict["songs"],
+                    index=songbook_dict["index"],
+                    focus=False
+                ))
+            self.current_songbook = self.songbooks[0] if self.songbooks else None
+            self.initialize_home()
+            self.set_mode("home")
+        
+        # Use Clock otherwise we will not be in the Kivy thread at that point since
+        # the whole load method is in a separate thread
+        Clock.schedule_once(lambda dt: draw(songbook_dicts))
 
 
 class TeleprompterApp(App):
@@ -626,6 +650,8 @@ class TeleprompterApp(App):
             shutil.rmtree(TEMP_FOLDER)
         
         main = TeleprompterWidget()
+        main.message = "LOADING ...1"
+        Clock.schedule_interval(lambda dt: main.update(), 0.5)
         Clock.schedule_once(lambda dt: main.init(), 0)
         
         return main
