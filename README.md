@@ -10,22 +10,22 @@ of the stage, ideally in some sort of case that looks like a stage wedge. Songs 
     <img src="./assets/home.png"
         width="640" height="512"
          alt="Home">
-    <figcaption>Home Page with 2 songbooks</figcaption>
 </figure>
+*Home Page with 2 songbooks*
 
 <figure>
     <img src="./assets/songbook.png"
         width="640" height="519"
          alt="Songbook">
-    <figcaption>A Songbook with 4 songs</figcaption>
 </figure>
+*A Songbook with 4 songs*
 
 <figure>
     <img src="./assets/song.png"
         width="640" height="520"
          alt="Song">
-    <figcaption>A song with song name, number of pages and total number of songs at the top. The next song is displyed at the bottom</figcaption>
 </figure>
+*A song with song name, number of pages and total number of songs at the top. The next song is displayed at the bottom*
 
 ## How to navigate
 
