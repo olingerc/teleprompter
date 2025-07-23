@@ -1,10 +1,9 @@
 # Teleprompter App
 
 For all performers that need a bit of a memory help on stage. This was developed to be used with a screen placed on the floor
-of the stage, ideally in some sort of case that looks like a stage wedge. Songs should be given as presentations inside a folder that collects songs for a given performance ***(Songbook)***. This folder should be in a folder called `songbooks` that is located in the same folder that contains this code.
+of the stage, ideally in some sort of case that looks like a stage wedge. Songs should be given as presentations inside a folder that collects songs for a given performance ***(Songbook)***. This folder should be in a folder called `songbooks` that is located in the same folder that contains this code or one level up.
 
 ## Screenshots
-
 
 ***Home Page with 2 songbooks***
 <figure>
@@ -50,7 +49,7 @@ root
     telepromter_app_folder
         songbooks
 ```
-The first option is easier to mamage if you have your songbooks for example in another git repository.
+The first option is easier to manage if you have your songbooks for example in another git repository.
 
 ## How to install
 
@@ -59,18 +58,18 @@ The first option is easier to mamage if you have your songbooks for example in a
 - Create a virtual environment using `python3 -m venv .venv`
 - Activate the environment with `source .venv/bin/activate`
 - `pip install kivy evdev python-pptx pdf2image`
-- `sudo usermod -aG input $USER` (input reading needs sudo access or the user needs to be in the `input` group. I am not sure this is needed. I need to test with a clean setup)
+- `sudo usermod -aG input $USER` (input reading needs sudo access or the user needs to be in the `input` group. I am not sure this is needed. I need to test with a clean setup).
 - Run the actual app using `python3 main.py` if the virtual environment is active or use `<path_to_app>/.venv/bin/python <path_to_app>/main.py
 
 ## Investigating my Foot Switch
 
 If in WSL2 follow this to get your USB device visible in Linux: https://learn.microsoft.com/en-us/windows/wsl/connect-usb.
 
-I got the name of my footswitch using `sudo evtest`. In my case the actual `PCsensor FootSwitch Keyboard` was the one I used. If yours is called differently. Set a discriminating string in the `main.py` file for the `FOOT_SWITCH_DEVICE_NAME_SUFFIX` variable. The app will use the device that ends with the given string.
+I got the name of my footswitch using `sudo evtest`. In my case the actual `PCsensor FootSwitch Keyboard` was the one I used. If yours is called differently, set a discriminating string in the `main.py` file for the `FOOT_SWITCH_DEVICE_NAME_SUFFIX` variable. The app will use the device that ends with the given string.
 
 For example I had:
 
-```
+```bash
 Bus 001 Device 004: ID 3553:b001 PCsensor FootSwitch
 
 /dev/input/event7:      PCsensor FootSwitch Keyboard
@@ -83,9 +82,9 @@ Bus 001 Device 004: ID 3553:b001 PCsensor FootSwitch
 Using the python `evdev` module I found:
 
 ```bash
-# device.path device.name device.phys
-/dev/input/event9 PCsensor FootSwitch usb-0000:01:00.0-1.2/input1
-/dev/input/event8 PCsensor FootSwitch Mouse usb-0000:01:00.0-1.2/input0
+# device.path     device.                      name device.phys
+/dev/input/event9 PCsensor FootSwitch          usb-0000:01:00.0-1.2/input1
+/dev/input/event8 PCsensor FootSwitch Mouse    usb-0000:01:00.0-1.2/input0
 /dev/input/event7 PCsensor FootSwitch Keyboard usb-0000:01:00.0-1.2/input0
 ```
 
