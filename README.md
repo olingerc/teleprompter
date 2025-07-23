@@ -23,7 +23,9 @@ On startup all files will be converted. Alrady converted files will be re-used e
 - `sudo usermod -aG input $USER` (input reading needs sudo access or the user needs to be in the `input` group. I am not sure this is needed. I need to test with a clean setup)
 - Run the actual app using `python3 main.py` if the virtual environment is active or use `<path_to_app>/.venv/bin/python <path_to_app>/main.py
 
-## Inestigating my Foot Switch
+## Investigating my Foot Switch
+
+If in WSL2 follow this to get your USB device visible in Linux: https://learn.microsoft.com/en-us/windows/wsl/connect-usb.
 
 I got the name of my footswitch using `sudo evtest`. In my case the actual `PCsensor FootSwitch Keyboard` was the one I used. If yours is called differently. Set a discriminating string in the `main.py` file for the `FOOT_SWITCH_DEVICE_NAME_SUFFIX` variable. The app will use the device that ends with the given string.
 

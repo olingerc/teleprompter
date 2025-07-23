@@ -259,7 +259,9 @@ class TeleprompterWidget(FloatLayout):
 
                     if btn and state:
                         self._input_state = (btn, state)
-                        self._decide_action()
+                        
+                        # The foot switch detection is in a separate thread. Use Clock to get back into the kivy thread
+                        Clock.schedule_once(lambda dt: self._decide_action())
 
     def _keyboard_closed(self):
         # Do not unbind, otherwise escape from prompt will switch to home but then no keys are detected anymore
@@ -379,7 +381,7 @@ class TeleprompterWidget(FloatLayout):
                 ]:
                     self.prompt_next()
 
-                if self._input_state[0] == "BS" and self._input_state[1] in [
+                if self._input_state[0] == "B" and self._input_state[1] in [
                     "hold",
                     "down",
                 ]:
