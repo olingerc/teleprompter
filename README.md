@@ -36,7 +36,7 @@ Use left, right or 1, 3 to navigate. Middle and 2 are to enter a songbook or son
 Create folder called `songbooks`. Each folder inside that will be a songbook. Folder name needs to be `<sequence> - <name>`. Inisde of these folders put presentations (currently only pptx format). The slides will be converted into images and shown in the prompter. Ideally the slides have the same size as the monitor that is to be used. Naming of the presentation files should be `<sequence> - <artist> - <song>.pptx`. 
 On startup all files will be converted. Already converted files will be re-used except if the presentation modification date is newer.
 
-The application will first look for this folder in the same folder where the app code is or if not found inside the app folder itself.
+The application will first look for this folder in the same folder where the app code is or if not present, inside the app folder itself.
 i.e
 ```bash
 # Next to app folder
@@ -58,8 +58,8 @@ The first option is easier to manage if you have your songbooks for example in a
 - Create a virtual environment using `python3 -m venv .venv`
 - Activate the environment with `source .venv/bin/activate`
 - `pip install kivy evdev python-pptx pdf2image`
-- `sudo usermod -aG input $USER` (input reading needs sudo access or the user needs to be in the `input` group. I am not sure this is needed. I need to test with a clean setup).
-- Run the actual app using `python3 main.py` if the virtual environment is active or use `<path_to_app>/.venv/bin/python <path_to_app>/main.py
+- `sudo usermod -aG input $USER` ***(input reading needs sudo access or the user needs to be in the `input` group. I am not sure this is needed. I need to test with a clean setup)***.
+- Run the actual app using `python3 main.py` if the virtual environment is active or use `<path_to_app>/.venv/bin/python <path_to_app>/main.py`
 
 ## Investigating my Foot Switch
 
