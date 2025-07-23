@@ -1,7 +1,7 @@
 # Teleprompter App
 
 For all performers that need a bit of a memory help on stage. This was developed to be used with a screen placed on the floor
-of the stage, ideally in some sort of case that looks like a stage wedge. Songs should be given as presentations inside a folder that collects songs for a given performance ***(Songbook)***. This folder should be in a folder called `songbooks` at the same place where this code is.
+of the stage, ideally in some sort of case that looks like a stage wedge. Songs should be given as presentations inside a folder that collects songs for a given performance ***(Songbook)***. This folder should be in a folder called `songbooks` that is located in the same folder that contains this code.
 
 ## How to navigate
 
@@ -12,6 +12,21 @@ Use left, right or 1, 3 to navigate. Middle and 2 are to enter a songbook or son
 
 Create folder called `songbooks`. Each folder inside that will be a songbook. Folder name needs to be `<sequence> - <name>`. Inisde of these folders put presentations (currently only pptx format). The slides will be converted into images and shown in the prompter. Ideally the slides have the same size as the monitor that is to be used. Naming of the presentation files should be `<sequence> - <artist> - <song>.pptx`. 
 On startup all files will be converted. Alrady converted files will be re-used except if the presentation modification date is newer.
+
+The application will first look for this folder in the same folder where the app code is or if not found inside the app folder itself.
+i.e
+```bash
+# Next to app folder
+root
+   telepromter_app_folder
+   songbooks
+or
+# Inside app folder
+root
+    telepromter_app_folder
+        songbooks
+```
+The first option is easier to mamage if you have your songbooks for example in another git repository.
 
 ## How to install
 

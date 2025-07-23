@@ -17,15 +17,14 @@ from kivy.clock import Clock
 from pdf2image import convert_from_bytes
 from pptx import Presentation
 
-DEBUG = False
 FOOT_SWITCH_DEVICE_NAME_SUFFIX = "FootSwitch Keyboard"
 FOOT_SWITCH_DEVICE_A_KEY = "KEY_A"
 FOOT_SWITCH_DEVICE_B_KEY = "KEY_B"
 FOOT_SWITCH_DEVICE_C_KEY = "KEY_C"
 SONGBOOK_MIN_ROWS_NUM = 3
 SONGBOOK_MIN_COLS_NUM = 6
-SONGBOOKS_FOLDER = "songbooks"
-TEMP_FOLDER = "converted"
+SONGBOOKS_FOLDER = "songbooks"  # by default one folder up from code folder  otherwise within code folder
+TEMP_FOLDER = "#converted#"  # inside SONGBOOKS_FOLDER
 
 # SIZES
 TOP_BAR_TO_IMAGE_RATIO = 0.04
@@ -208,6 +207,19 @@ class TeleprompterWidget(FloatLayout):
             on_key_up=self._on_keyboard_up,
         )
         self._previous_keyboard_state = None
+        
+        # Define location of songbooks folder
+        potential_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), SONGBOOKS_FOLDER)
+        if os.path.exists(potential_folder):
+            self.songbooks_path = potential_folder
+            self.songbooks_converted_path = os.path.join(potential_folder, TEMP_FOLDER)
+        else:
+            potential_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), SONGBOOKS_FOLDER)
+            if os.path.exists(potential_folder):
+                self.songbooks_path = potential_folder
+                self.songbooks_converted_path = os.path.join(potential_folder, TEMP_FOLDER)
+            else:
+                raise Exception("Could not find a songbooks folder inside of code folder or one level up")
         
         # Create a thread to load songbooks and draw its contents
         self.songbooks = []
@@ -477,9 +489,10 @@ class TeleprompterWidget(FloatLayout):
 
     def _presentation_to_images(self, path_to_presentation, songbook_name):
         IMAGE_FORMAT = "jpg"
-        OUT_DIR = TEMP_FOLDER + "/" + songbook_name
-        if not os.path.exists(OUT_DIR):
-            os.makedirs(OUT_DIR)
+        
+        converted_path = os.path.join(self.songbooks_converted_path, songbook_name)
+        if not os.path.exists(converted_path):
+            os.makedirs(converted_path)
 
         filename_bare = os.path.basename(path_to_presentation).replace(".pptx", "")
 
@@ -490,7 +503,7 @@ class TeleprompterWidget(FloatLayout):
             presentation = Presentation(path_to_presentation)
             for i in range(len(presentation.slides)):
                 expected_image = os.path.join(
-                    OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}"
+                    converted_path, f"{filename_bare}-{i}.{IMAGE_FORMAT}"
                 )
                 expected_image_paths.append(expected_image)
                 if os.path.exists(expected_image) is False:
@@ -517,7 +530,7 @@ class TeleprompterWidget(FloatLayout):
 
         created_image_paths = []
         for i, img in enumerate(images):
-            im_name = os.path.join(OUT_DIR, f"{filename_bare}-{i}.{IMAGE_FORMAT}")
+            im_name = os.path.join(converted_path, f"{filename_bare}-{i}.{IMAGE_FORMAT}")
             created_image_paths.append(im_name)
             img.save(im_name)
 
@@ -528,25 +541,23 @@ class TeleprompterWidget(FloatLayout):
         return created_image_paths
     
     def load_songbooks(self):
-        songbooks_folder = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), SONGBOOKS_FOLDER
-        )
-        if os.path.exists(songbooks_folder) is False:
-            raise Exception(f"Songbooks folder {songbooks_folder} does not exist.")
         
+        # Get candidates
+        potential_songbooks = []
+        for songbook_folder in sorted(os.listdir(self.songbooks_path)):
+            songbook_path = os.path.join(self.songbooks_path, songbook_folder)
+            if os.path.isdir(songbook_path) and songbook_folder != TEMP_FOLDER and "-" in songbook_folder:
+                potential_songbooks.append(songbook_path)
+
         songbooks = []
-        for songbook_index, songbook_folder in enumerate(sorted(os.listdir(songbooks_folder))):
-            
+        for songbook_index, songbook_path in enumerate(potential_songbooks):
+            songbook_folder = os.path.basename(songbook_path)
             songbook_sequence = songbook_folder.split("-")[0].strip()
             songbook_title = songbook_folder.split("-")[1].strip()
             
             self.update_loading_screen("")
             self.update_loading_screen("SONGBOOK: " + songbook_title)
-            songbook_path = os.path.join(songbooks_folder, songbook_folder)
-            
-            # Only look at directories
-            if not os.path.isdir(songbook_path):
-                continue
+
 
             # Collect songs for this songbook
             songs = []
@@ -672,12 +683,8 @@ class TeleprompterApp(App):
     TOP_BAR_TO_IMAGE_RATIO = TOP_BAR_TO_IMAGE_RATIO
     BOTTOM_BAR_TO_IMAGE_RATIO = BOTTOM_BAR_TO_IMAGE_RATIO
     
-    if DEBUG:
-        if os.path.exists(TEMP_FOLDER):
-            shutil.rmtree(TEMP_FOLDER)
-    else:
-        Window.fullscreen = True
-        Window.allow_screensaver = False
+    Window.fullscreen = True
+    Window.allow_screensaver = False
 
     def build(self):
         main = TeleprompterWidget()
