@@ -6,26 +6,26 @@ of the stage, ideally in some sort of case that looks like a stage wedge. Songs 
 ## Screenshots
 
 
+***Home Page with 2 songbooks***
 <figure>
     <img src="./assets/home.png"
         width="640" height="512"
          alt="Home">
 </figure>
-*Home Page with 2 songbooks*
 
+***A Songbook with 4 songs***
 <figure>
     <img src="./assets/songbook.png"
         width="640" height="519"
          alt="Songbook">
 </figure>
-*A Songbook with 4 songs*
 
+***A song with song name, number of pages and total number of songs at the top. The next song is displayed at the bottom***
 <figure>
     <img src="./assets/song.png"
         width="640" height="520"
          alt="Song">
 </figure>
-*A song with song name, number of pages and total number of songs at the top. The next song is displayed at the bottom*
 
 ## How to navigate
 
