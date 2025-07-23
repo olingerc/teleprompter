@@ -1,7 +1,6 @@
 import os
 import subprocess
 from threading import Thread
-import shutil
 
 from evdev import InputDevice, list_devices, categorize
 
