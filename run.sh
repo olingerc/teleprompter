@@ -1,4 +1,10 @@
 #!/bin/bash
+
+# Autostart on Raspian OS
+# sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
+# add line there:
+# @/home/chris/workspace/teleprompter/run.sh
+
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 parentdir="$(dirname "$script_dir")"
 
