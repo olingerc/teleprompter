@@ -684,6 +684,7 @@ class TeleprompterApp(App):
     
     Window.fullscreen = True
     Window.allow_screensaver = False
+    Window.show_cursor = False
 
     def build(self):
         main = TeleprompterWidget()
